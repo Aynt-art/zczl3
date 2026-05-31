@@ -1,0 +1,3344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>征程之路3--传承装备</title>
+<script>
+(function() {
+    var localPath = 'xlsx.full.min.js';
+    var cdnPath = 'https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js';
+    var script = document.createElement('script');
+    script.src = localPath;
+    script.defer = true;
+    script.onerror = function() {
+        console.log('本地xlsx库不存在，从CDN加载...');
+        var cdnScript = document.createElement('script');
+        cdnScript.src = cdnPath;
+        cdnScript.defer = true;
+        document.head.appendChild(cdnScript);
+    };
+    document.head.appendChild(script);
+})();
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Microsoft YaHei', sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); min-height: 100vh; color: #fff; padding: 20px; }
+.container { max-width: 1600px; margin: 0 auto; }
+h1 { text-align: center; color: #ffd700; margin-bottom: 8px; }
+.subtitle { text-align: center; color: #888; margin-bottom: 20px; font-size: 14px; }
+.import-bar { display: flex; justify-content: center; gap: 40px; margin-bottom: 20px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px; flex-wrap: wrap; }
+.import-item { display: flex; align-items: center; gap: 10px; flex-wrap: nowrap; }
+.import-label { font-size: 14px; color: #ccc; min-width: 90px; }
+.file-input { opacity: 0; position: absolute; width: 100%; height: 100%; cursor: pointer; z-index: 1; }
+.import-item { position: relative; display: inline-flex; align-items: center; gap: 10px; padding: 6px 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; cursor: pointer; transition: all 0.3s; }
+.import-item:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.4); }
+.status { font-size: 12px; padding: 4px 10px; border-radius: 12px; margin-left: auto; }
+.status.empty { background: rgba(255,255,255,0.1); color: #888; }
+.status.success { background: rgba(46,204,113,0.3); color: #2ecc71; }
+.status.error { background: rgba(231,76,60,0.3); color: #e74c3c; }
+.upload-btn { display: none !important; }
+.equip-section { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.section-title { font-size: 16px; color: #ffd700; margin-bottom: 15px; }
+.quick-btns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.quick-btn { padding: 6px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; color: #ccc; cursor: pointer; font-size: 12px; transition: all 0.3s; }
+.quick-btn:hover { background: rgba(255,215,0,0.2); border-color: #ffd700; color: #ffd700; }
+.quick-btn.prefer { background: rgba(155,89,182,0.3); border-color: rgba(155,89,182,0.5); color: #9b59b6; }
+.quick-btn.prefer:hover, .quick-btn.prefer.active { background: rgba(155,89,182,0.6); border-color: #9b59b6; color: #fff; }
+.quick-btn.derive { background: linear-gradient(135deg, #e67e22, #d35400); border-color: rgba(230,126,34,0.5); color: #fff; font-weight: bold; }
+.quick-btn.derive:hover { background: linear-gradient(135deg, #f39c12, #e67e22); border-color: #f39c12; }
+.quick-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.quick-btn:disabled:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: #ccc; }
+.io-btn { padding: 6px 12px; background: rgba(46,204,113,0.3); border: 1px solid rgba(46,204,113,0.5); border-radius: 5px; color: #2ecc71; cursor: pointer; font-size: 12px; transition: all 0.3s; }
+.io-btn:hover { background: rgba(46,204,113,0.5); }
+.io-btn.import { background: rgba(52,152,219,0.3); border-color: rgba(52,152,219,0.5); color: #3498db; }
+.io-btn.import:hover { background: rgba(52,152,219,0.5); }
+.io-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.equip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+.equip-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 12px; transition: all 0.3s ease; }
+.equip-card:hover { background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(0,0,0,0.5); }
+.equip-card label { display: block; font-size: 12px; color: #888; margin-bottom: 6px; }
+.equip-card select { width: 100%; padding: 8px; background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; color: #fff; font-size: 12px; cursor: pointer; }
+.equip-card select:hover { border-color: rgba(255,255,255,0.4); }
+.equip-card select:focus { outline: none; border-color: rgba(255,215,0,0.5); }
+.equip-card select:disabled { opacity: 0.5; cursor: not-allowed; background: rgba(0,0,0,0.3); }
+.equip-card select.waiting { background: rgba(231,76,60,0.2); border-color: rgba(231,76,60,0.4); color: #e74c3c; }
+.equip-card.attr-equip { border-color: rgba(255,215,0,0.3); }
+.equip-card.attr-equip.str { border-left: 3px solid #e74c3c; }
+.equip-card.attr-equip.agi { border-left: 3px solid #2ecc71; }
+.equip-card.attr-equip.int { border-left: 3px solid #3498db; }
+.equip-card.common { border-color: rgba(155,89,182,0.5); border-left: 3px solid #9b59b6; }
+.equip-card.common label { color: #9b59b6; }
+.equip-card select option { background: rgba(0,0,0,0.95); color: #fff; padding: 10px; }
+.filter-bar { display: flex; gap: 15px; margin-bottom: 20px; }
+.filter-btn { flex: 1; padding: 15px 20px; font-size: 15px; font-weight: bold; border: 2px solid transparent; border-radius: 10px; cursor: pointer; color: #fff; transition: all 0.3s; }
+.filter-btn.str { background: rgba(231,76,60,0.3); border-color: #e74c3c; }
+.filter-btn.str:hover, .filter-btn.str.active { background: rgba(231,76,60,0.6); }
+.filter-btn.agi { background: rgba(46,204,113,0.3); border-color: #2ecc71; }
+.filter-btn.agi:hover, .filter-btn.agi.active { background: rgba(46,204,113,0.6); }
+.filter-btn.int { background: rgba(52,152,219,0.3); border-color: #3498db; }
+.filter-btn.int:hover, .filter-btn.int.active { background: rgba(52,152,219,0.6); }
+.filter-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.hero-section { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 15px; margin-bottom: 15px; border-left: 4px solid #ffd700; }
+.hero-section.str { border-left-color: #e74c3c; background: rgba(231,76,60,0.1); }
+.hero-section.agi { border-left-color: #2ecc71; background: rgba(46,204,113,0.1); }
+.hero-section.int { border-left-color: #3498db; background: rgba(52,152,219,0.1); }
+.hero-section.top-rank { border-left-color: #ff6b6b; background: rgba(255,107,107,0.1); }
+.hero-section.second-rank { border-left-color: #feca57; background: rgba(254,202,87,0.1); }
+.hero-section.third-rank { border-left-color: #54a0ff; background: rgba(84,160,255,0.1); }
+.hero-section.preferred { border-left-color: #9b59b6; background: rgba(155,89,182,0.15); }
+.hero-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap; }
+.hero-name { font-size: 18px; font-weight: bold; }
+.hero-section.str .hero-name { color: #e74c3c; }
+.hero-section.agi .hero-name { color: #2ecc71; }
+.hero-section.int .hero-name { color: #3498db; }
+.hero-rank { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; font-size: 14px; font-weight: bold; margin-right: 8px; }
+.rank-1 { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: #fff; }
+.rank-2 { background: linear-gradient(135deg, #feca57, #f39c12); color: #fff; }
+.rank-3 { background: linear-gradient(135deg, #54a0ff, #0984e3); color: #fff; }
+.hero-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+.tag.race { background: rgba(52,152,219,0.3); border-color: rgba(52,152,219,0.5); }
+.tag.camp { background: rgba(46,204,113,0.3); border-color: rgba(46,204,113,0.5); }
+.tag.moral { background: rgba(230,126,34,0.3); border-color: rgba(230,126,34,0.5); }
+.tag.gender { background: rgba(231,76,60,0.3); border-color: rgba(231,76,60,0.5); }
+.tag.attr { background: rgba(155,89,182,0.3); border-color: rgba(155,89,182,0.5); }
+.tag.mode { font-size: 12px; font-weight: normal; padding: 3px 8px; margin: 0 4px 0 2px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; }
+.tag.mode.normal { color: #ffffff; border-color: rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); }
+.tag.mode.difficult { color: #00ffff; border-color: rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); }
+.tag.mode.challenge { color: #e74c3c; border-color: rgba(255,255,255,255,0.2); background: rgba(0,0,0,0.3); }
+.tag.mode.deathmatch { color: #9b59b6; border-color: rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); }
+.tag.mode.cheat { color: #ff00ff; border-color: rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); }
+.tag.diff { font-size: 12px; font-weight: normal; padding: 3px 8px; margin: 0 4px 0 2px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; }
+.tag.diff.star-1-3 { color: #2ecc71; }
+.tag.diff.star-4-6 { color: #f1c40f; }
+.tag.diff.star-7-9 { color: transparent; background: linear-gradient(90deg, #ff6b6b, #ff8e53, #feca57, #54a0ff, #5f27cd); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: #ffffff; }
+.tag.preferred { background: linear-gradient(135deg, #9b59b6, #8e44ad); color: #fff; box-shadow: 0 0 6px rgba(155,89,182,0.5); border: 1px solid rgba(155,89,182,0.3); }
+.hero-name-str { color: #e74c3c; font-weight: bold; }
+.hero-name-agi { color: #2ecc71; font-weight: bold; }
+.hero-name-int { color: #3498db; font-weight: bold; }
+.equip-detail { margin-bottom: 12px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; }
+.equip-detail.common-slot { border-left: 3px solid #9b59b6; }
+.equip-title { font-size: 14px; font-weight: bold; color: #ffd700; margin-bottom: 8px; }
+.equip-title.common { color: #9b59b6; }
+.promote-chain { font-size: 12px; line-height: 2; padding-left: 10px; }
+.chain-row { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 2px; flex-wrap: wrap; }
+.chain-status { width: 36px; padding: 2px 6px; border-radius: 4px; font-size: 11px; text-align: center; flex-shrink: 0; margin-top: 2px; }
+.chain-status.start { background: rgba(46,204,113,0.3); color: #2ecc71; }
+.chain-status.continue { background: rgba(52,152,219,0.3); color: #3498db; }
+.chain-status.terminate { background: rgba(231,76,60,0.3); color: #e74c3c; }
+.chain-status.full { background: rgba(155,89,182,0.3); color: #9b59b6; }
+.chain-status.jump { background: rgba(255,193,7,0.3); color: #ffc107; }
+.chain-name { flex-shrink: 0; }
+.chain-name.tier-0 { color: #888888; }
+.chain-name.tier-1 { color: #ffffff; }
+.chain-name.tier-2 { color: #2ecc71; }
+.chain-name.tier-3 { color: #00ffff; }
+.chain-name.tier-4 { color: #3498db; }
+.chain-name.tier-5 { color: #e74c3c; }
+.chain-name.tier-6 { color: #9b59b6; }
+.chain-name.tier-7 { color: #f1c40f; }
+.chain-name.tier-8 { color: #e67e22; }
+.chain-name.tier-9 { color: #ff69b4; }
+.chain-boss { font-size: 11px; color: #ff9500; flex-shrink: 0; margin-left: 5px; }
+.chain-total { font-size: 12px; font-weight: bold; margin-left: auto; min-width: 35px; text-align: right; flex-shrink: 0; }
+.chain-total.tier-0 { color: #888888; }
+.chain-total.tier-1 { color: #ffffff; }
+.chain-total.tier-2 { color: #2ecc71; }
+.chain-total.tier-3 { color: #00ffff; }
+.chain-total.tier-4 { color: #3498db; }
+.chain-total.tier-5 { color: #e74c3c; }
+.chain-total.tier-6 { color: #9b59b6; }
+.chain-total.tier-7 { color: #f1c40f; }
+.chain-total.tier-8 { color: #e67e22; }
+.chain-total.tier-9 { color: #ff69b4; }
+.chain-arrow { color: #666; margin: 2px 0; padding-left: 44px; font-size: 12px; flex-basis: 100%; }
+.hero-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.load-btn { padding: 6px 12px; background: linear-gradient(135deg, #27ae60, #2ecc71); border: none; border-radius: 5px; color: #fff; cursor: pointer; font-size: 12px; font-weight: bold; transition: all 0.3s; }
+.load-btn:hover { background: linear-gradient(135deg, #2ecc71, #27ae60); transform: scale(1.05); }
+.load-btn.loading { background: linear-gradient(135deg, #3498db, #2980b9); }
+.hero-total { background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.1)); border: 1px solid rgba(255,215,0,0.3); border-radius: 8px; padding: 8px 15px; text-align: center; }
+.hero-total-label { font-size: 11px; color: #ffd700; margin-bottom: 2px; }
+.hero-total-num { font-size: 20px; font-weight: bold; color: #ffd700; }
+.empty-state { text-align: center; padding: 50px 20px; color: #666; }
+.empty-state .icon { font-size: 40px; margin-bottom: 10px; }
+.section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent); margin: 15px 0; }
+.equip-card select.tier-0 { color: #888888 !important; }
+.equip-card select.tier-1 { color: #ffffff !important; }
+.equip-card select.tier-2 { color: #2ecc71 !important; }
+.equip-card select.tier-3 { color: #00ffff !important; }
+.equip-card select.tier-4 { color: #3498db !important; }
+.equip-card select.tier-5 { color: #e74c3c !important; }
+.equip-card select.tier-6 { color: #9b59b6 !important; }
+.equip-card select.tier-7 { color: #f1c40f !important; }
+.equip-card select.tier-8 { color: #e67e22 !important; }
+.equip-card select.tier-9 { color: #ff69b4 !important; }
+.equip-card select option.tier-0 { color: #888888; }
+.equip-card select option.tier-1 { color: #ffffff; }
+.equip-card select option.tier-2 { color: #2ecc71; }
+.equip-card select option.tier-3 { color: #00ffff; }
+.equip-card select option.tier-4 { color: #3498db; }
+.equip-card select option.tier-5 { color: #e74c3c; }
+.equip-card select option.tier-6 { color: #9b59b6; }
+.equip-card select option.tier-7 { color: #f1c40f; }
+.equip-card select option.tier-8 { color: #e67e22; }
+.equip-card select option.tier-9 { color: #ff69b4; }
+.equip-attr { font-size: 11px; color: #fff; margin-top: 6px; padding: 4px 6px; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); border-radius: 4px; line-height: 1.4; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; }
+.modal-overlay.show { display: flex; }
+.modal-content { background: linear-gradient(135deg, #1a1a2e, #16213e); border: 1px solid rgba(155,89,182,0.5); border-radius: 12px; padding: 20px; max-width: 800px; width: 90%; max-height: 80vh; overflow-y: auto; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.2); }
+.modal-title { font-size: 18px; color: #9b59b6; font-weight: bold; }
+.modal-close { background: none; border: none; color: #888; font-size: 24px; cursor: pointer; }
+.modal-close:hover { color: #fff; }
+.modal-actions { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.modal-btn { padding: 8px 16px; border: 1px solid rgba(155,89,182,0.5); border-radius: 6px; background: rgba(155,89,182,0.2); color: #9b59b6; cursor: pointer; font-size: 13px; }
+.modal-btn:hover { background: rgba(155,89,182,0.4); }
+.modal-btn.clear { background: rgba(231,76,60,0.3); border-color: rgba(231,76,60,0.5); color: #e74c3c; }
+.modal-btn.clear:hover { background: rgba(231,76,60,0.5); }
+.hero-group { margin-bottom: 20px; }
+.hero-group-title { font-size: 14px; font-weight: bold; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; }
+.hero-group-title.str { background: rgba(231,76,60,0.3); color: #e74c3c; border-left: 3px solid #e74c3c; }
+.hero-group-title.agi { background: rgba(46,204,113,0.3); color: #2ecc71; border-left: 3px solid #2ecc71; }
+.hero-group-title.int { background: rgba(52,152,219,0.3); color: #3498db; border-left: 3px solid #3498db; }
+.clickable-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; padding-left: 10px; }
+.clickable-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+.clickable-item:hover { background: rgba(255,255,255,0.1); }
+.clickable-item.selected { background: rgba(155,89,182,0.3); border: 1px solid rgba(155,89,182,0.5); }
+.clickable-item.selected .item-text { color: #fff; font-weight: bold; }
+.clickable-item .item-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666; }
+.clickable-item.selected .item-icon { color: #9b59b6; }
+.clickable-item .item-text { font-size: 13px; color: #ccc; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.combo-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; cursor: pointer; transition: all 0.25s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.45); }
+.combo-header:hover { background: rgba(255,255,255,0.1); box-shadow: 0 3px 8px rgba(0,0,0,0.55); }
+.combo-header .combo-number { font-size: 18px; font-weight: bold; color: #ffd700; min-width: 30px; text-align: center; }
+.combo-header .combo-heroes { flex: 1; font-size: 16px; font-weight: bold; color: #e67e22; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.combo-header .combo-total { font-size: 18px; font-weight: bold; color: #ffd700; min-width: 60px; text-align: right; }
+.combo-header .combo-arrow { font-size: 20px; color: #ccc; transition: transform 0.3s; }
+.combo-header.expanded .combo-arrow { transform: rotate(180deg); }
+.combo-details { display: none; margin-top: 8px; padding: 14px 16px; background: rgba(0,0,0,0.2); border-radius: 10px; border: 1px solid rgba(255,255,255,0.08); box-shadow: 0 2px 6px rgba(0,0,0,0.45); }
+.combo-details.show { display: block; }
+.no-equip-hint { font-size: 12px; color: #666; padding: 10px; text-align: center; font-style: italic; }
+.selected-count { font-size: 12px; color: #9b59b6; margin-left: auto; }
+.derive-modal .modal-content { max-width: 500px; }
+.derive-option-group { margin-bottom: 20px; }
+.derive-option-label { font-size: 14px; color: #ccc; margin-bottom: 10px; display: block; }
+.derive-option-title { font-size: 14px; font-weight: bold; color: #e67e22; margin-bottom: 10px; }
+.derive-checkbox-group { display: flex; gap: 15px; flex-wrap: wrap; }
+.derive-click-item { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: rgba(255,255,255,0.05); border-radius: 6px; cursor: pointer; transition: all 0.2s; border: 1px solid transparent; }
+.derive-click-item:hover { background: rgba(255,255,255,0.1); }
+.derive-click-item.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+.derive-click-item.selected.str { background: rgba(231,76,60,0.3); border: 1px solid rgba(231,76,60,0.5); }
+.derive-click-item.selected.agi { background: rgba(46,204,113,0.3); border: 1px solid rgba(46,204,113,0.5); }
+.derive-click-item.selected.int { background: rgba(52,152,219,0.3); border: 1px solid rgba(52,152,219,0.5); }
+.derive-click-item.selected.diff { background: rgba(255,215,0,0.3); border: 1px solid rgba(255,215,0,0.5); }
+.derive-click-item.selected .derive-item-text { color: #fff; font-weight: bold; }
+.derive-click-item .derive-item-icon { width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 14px; color: #666; }
+.derive-click-item.selected.str .derive-item-icon { color: #e74c3c; }
+.derive-click-item.selected.agi .derive-item-icon { color: #2ecc71; }
+.derive-click-item.selected.int .derive-item-icon { color: #3498db; }
+.derive-click-item.selected.diff .derive-item-icon { color: #ffd700; }
+.derive-click-item .derive-item-text { font-size: 14px; color: #ccc; }
+.number-select { display: flex; gap: 10px; flex-wrap: wrap; }
+.number-btn { padding: 10px 18px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #ccc; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+.number-btn:hover { background: rgba(255,255,255,0.2); }
+.number-btn.selected { background: rgba(155,89,182,0.4); border-color: #9b59b6; color: #fff; font-weight: bold; }
+.modal-btn.derive-btn { background: linear-gradient(135deg, #e67e22, #d35400); border-color: rgba(230,126,34,0.5); color: #fff; font-weight: bold; }
+.modal-btn.derive-btn:hover { background: linear-gradient(135deg, #f39c12, #e67e22); }
+.derive-result-header { background: linear-gradient(135deg, rgba(230,126,34,0.2), rgba(211,84,0,0.1)); border: 1px solid rgba(230,126,34,0.3); border-radius: 10px; padding: 15px; margin-bottom: 20px; }
+.derive-result-title { font-size: 16px; font-weight: bold; color: #e67e22; margin-bottom: 10px; }
+.derive-result-info { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: #888; }
+.best-mode-info { display: flex; gap: 15px; margin-bottom: 15px; flex-wrap: wrap; }
+.best-mode-item { background: rgba(0,0,0,0.2); padding: 8px 15px; border-radius: 6px; }
+.best-mode-label { font-size: 11px; color: #888; }
+.best-mode-value { font-size: 14px; font-weight: bold; }
+.best-mode-value.mode { color: #e74c3c; }
+.best-mode-value.diff { color: #2ecc71; }
+.chain-position { display: inline-flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 4px; font-size: 12px; color: #e67e22; margin-bottom: 10px; }
+.hero-section.derive-result.str { border-left-color: #e74c3c; background: rgba(231,76,60,0.1); }
+.hero-section.derive-result.agi { border-left-color: #2ecc71; background: rgba(46,204,113,0.1); }
+.hero-section.derive-result.int { border-left-color: #3498db; background: rgba(52,152,219,0.1); }
+.tag.derive { background: linear-gradient(135deg, #e67e22, #d35400); color: #fff; }
+.tag.chain-pos { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,215,0,0.5); color: #ffd700; font-size: 11px; padding: 3px 8px; border-radius: 4px; margin-right: 8px; }
+.calculating-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; justify-content: center; align-items: center; flex-direction: column; }
+.calculating-overlay.show { display: flex; }
+.calculating-content { text-align: center; max-width: 500px; padding: 30px; }
+.calculating-spinner { width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.1); border-top-color: #e67e22; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 25px; }
+.calculating-title { font-size: 20px; font-weight: bold; color: #e67e22; margin-bottom: 20px; }
+.calculating-info { background: rgba(255,255,255,0.05); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+.calculating-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.calculating-row:last-child { border-bottom: none; }
+.calculating-label { color: #888; font-size: 14px; }
+.calculating-value { color: #fff; font-size: 14px; font-weight: bold; }
+.calculating-value.highlight { color: #ffd700; font-size: 16px; }
+.calculating-progress { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; margin-top: 15px; }
+.calculating-progress-bar { height: 100%; background: linear-gradient(90deg, #e67e22, #f39c12); border-radius: 4px; transition: width 0.3s ease; }
+.calculating-text { font-size: 14px; color: #888; margin-top: 15px; }
+.calculating-estimate { font-size: 12px; color: #666; margin-top: 8px; }
+.calculating-details { margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); width: 100%; }
+.calculating-detail-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+.calculating-detail-item:last-child { border-bottom: none; }
+.calculating-detail-label { font-size: 11px; color: #aaa; }
+.calculating-detail-value { font-size: 11px; color: #fff; font-weight: bold; }
+.calculating-cancel-btn { margin-top: 20px; padding: 10px 20px; background: linear-gradient(135deg, #e74c3c, #c0392b); border: none; border-radius: 6px; color: #fff; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.3s; box-shadow: 0 2px 6px rgba(231,76,60,0.4); }
+.calculating-cancel-btn:hover { background: linear-gradient(135deg, #f39c12, #e74c3c); transform: scale(1.05); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.corner-toggle-btn { position: fixed; top: 12px; z-index: 1100; padding: 6px 12px; background: rgba(0,0,0,0.65); border-radius: 14px; border: 1px solid rgba(255,255,255,0.25); color: #ffd700; font-size: 12px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.6); backdrop-filter: blur(4px); transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease; }
+.corner-toggle-btn:hover { background: rgba(40,40,40,0.9); box-shadow: 0 3px 8px rgba(0,0,0,0.8); transform: translateY(-1px); }
+.corner-toggle-btn.left { left: 16px; }
+.corner-toggle-btn.right { right: 16px; }
+.corner-panel { position: fixed; top: 38px; z-index: 1099; max-width: 320px; background: #1b1b1b; border-radius: 10px; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 4px 14px rgba(0,0,0,0.8); padding: 10px 14px; font-size: 12px; color: #ccc; line-height: 1.6; display: none; }
+.corner-panel.left { left: 16px; }
+.corner-panel.right { right: 16px; }
+.corner-panel.show { display: block; }
+@media (max-width: 768px) { body { padding: 10px; overflow-x: auto; } .container { max-width: 100%; } .import-bar, .filter-bar, .quick-btns { flex-direction: column; align-items: stretch; } .filter-btn { width: 100%; } .equip-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); } .hero-header { flex-direction: column; align-items: flex-start; } .hero-actions { margin-left: 0; margin-top: 8px; } }
+</style>
+</head>
+<body>
+<button class="corner-toggle-btn left" onclick="toggleTopPanel('changelog')">📜 更新内容</button>
+<button class="corner-toggle-btn right" onclick="toggleTopPanel('help')">❓ 使用说明</button>
+<div class="corner-panel left" id="corner-panel-changelog">
+<p><strong>当前版本：V1.3.0 </strong></p>
+<p>· 时间：2026-5-5 </p>
+<p>· 更新数据</p>
+<p>· 时间：2026-5-7 </p>
+<p>· 修正部分lv10装备不晋升问题</p>
+<p>· 时间：2026-5-8 </p>
+<p>· 修正英雄山丘之王数据排列不正确的问题</p>
+<p>· 更新数据</p>
+<p>· 时间：2026-5-11 </p>
+<p>· 更新数据</p>
+<p>· 时间：2026-5-16 </p>
+<p>· 更新数据</p>
+<p>· 时间：2026-5-25 </p>
+<p>· 版本更新 </p>
+<p>· 增加传承装备：披风 </p>
+<p>· 删除推导中的通用系，纯通用系推导易产生幻觉</p>
+<p>· 时间：2026-5-30 </p>
+<p>· 更新数据</p>
+
+</div>
+<div class="corner-panel right" id="corner-panel-help">
+<p><strong>基础流程</strong></p>
+<p>· 打开网页默认自动加载最新数据(Ctrl+F5强制刷新，F5重新加载)。</p>
+<p>· 如未加载，可手动导入（点击"传承装备"、"英雄数据"字样）</p>
+<p>· 1.数据如未及时更新，可自行至群内下载。</p>
+<p>· 2.在"属性装备 / 通用装备"区域选择你当前拥有的传承。</p>
+<p>· 3.点击"力量系 / 敏捷系 / 智力系"按钮，查看该系英雄的晋升效果与排序。</p>
+<p>· 4.如有选择"偏好英雄"，结果中会优先排列。</p>
+<p>· 5.如有选择"偏好英雄"，推导功能只会使用偏好英雄进行推导。</p>
+<p>· 6.为了加快运算速度，做了一定取舍，推导结果可能并不如意。</p>
+<p>· 万事不决，刷新网页。</p>
+<p>· 如有其他意见或建议请在社区留言或在群内@今`天 。</p>
+<p>· 如对游戏有意见或建议请在群内@゛随风而动 。</p>
+</div>
+<div class="container">
+<h1> 征程之路3--传承装备</h1>
+<div class="import-bar">
+<div class="import-item">
+<span class="import-label">传承装备：</span>
+<input type="file" id="equipFile" class="file-input" accept=".xlsx,.xls">
+<span class="status empty" id="equipStatus">未导入</span>
+</div>
+<div class="import-item">
+<span class="import-label">英雄数据：</span>
+<input type="file" id="heroFile" class="file-input" accept=".xlsx,.xls">
+<span class="status empty" id="heroStatus">未导入</span>
+</div>
+</div>
+<div class="equip-section">
+<div class="section-title">选择当前拥有的传承装备</div>
+<div class="quick-btns">
+<button class="quick-btn prefer" id="btn-prefer" onclick="openPreferHeroModal()" disabled>⭐ 偏好英雄 <span id="preferCount" style="background:rgba(0,0,0,0.3);padding:2px 6px;border-radius:10px;font-size:11px;">0</span></button>
+<button class="quick-btn derive" id="btn-derive" onclick="openDeriveModal()" disabled> 推导</button>
+<button class="io-btn import" id="btn-import" onclick="importEquipment()" disabled>导入装备</button>
+<button class="io-btn" id="btn-export" onclick="exportEquipment()" disabled>导出装备</button>
+</div>
+<br>
+<div style="font-size:13px;color:#e74c3c;margin-bottom:10px;">属性装备（根据英雄属性匹配）</div>
+<div class="equip-grid" id="equipGridAttr"></div>
+<div class="section-divider"></div>
+<div style="font-size:13px;color:#9b59b6;margin-bottom:10px;">通用装备（所有英雄通用，无属性要求）</div>
+<div class="equip-grid" id="equipGridCommon"></div>
+</div>
+<div class="filter-bar">
+<button class="filter-btn str" id="filter-str" onclick="calculatePromote('力量')" disabled> 力量系 <span class="count" id="count-str">0</span> </button>
+<button class="filter-btn agi" id="filter-agi" onclick="calculatePromote('敏捷')" disabled> 敏捷系 <span class="count" id="count-agi">0</span> </button>
+<button class="filter-btn int" id="filter-int" onclick="calculatePromote('智力')" disabled> 智力系 <span class="count" id="count-int">0</span> </button>
+</div>
+<div id="resultBody">
+<div class="empty-state">
+<p>装备更新数据来自征3群文件_随风;下载即用！</p>
+</div>
+</div>
+</div>
+<!-- 偏好英雄选择弹窗 -->
+<div class="modal-overlay" id="preferHeroModal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title"> 选择偏好英雄（点击切换，即选即保存）</div>
+<button class="modal-close" onclick="closePreferHeroModal()">&times;</button>
+</div>
+<div class="modal-actions">
+<button class="modal-btn" onclick="selectAllPrefer()">全选</button>
+<button class="modal-btn clear" onclick="clearPreferHero()">清空选择</button>
+<span class="selected-count" id="selectedCount">已选: 0</span>
+</div>
+<div id="heroCheckboxes"></div>
+</div>
+</div>
+<input type="file" id="importFile" class="file-input" accept=".json" style="display:none;">
+<!-- 推导设置弹窗 -->
+<div class="modal-overlay derive-modal" id="deriveModal">
+<div class="modal-content">
+<div class="modal-header">
+<div class="modal-title"> 推导设置</div>
+<button class="modal-close" onclick="closeDeriveModal()">&times;</button>
+</div>
+<div class="derive-option-group">
+<div class="derive-option-title">选择属性（可多选或不选）</div>
+<div class="derive-checkbox-group" id="deriveAttrGroup">
+<div class="derive-click-item" onclick="toggleDeriveAttr('力量', this)">
+<span class="derive-item-icon">○</span>
+<span class="derive-item-text">力量系</span>
+</div>
+<div class="derive-click-item" onclick="toggleDeriveAttr('敏捷', this)">
+<span class="derive-item-icon">○</span>
+<span class="derive-item-text">敏捷系</span>
+</div>
+<div class="derive-click-item" onclick="toggleDeriveAttr('智力', this)">
+<span class="derive-item-icon">○</span>
+<span class="derive-item-text">智力系</span>
+</div>
+</div>
+</div>
+<div class="derive-option-group">
+  <div class="derive-option-title">选择模式（可多选，不选则不限制）</div>
+  <div class="derive-checkbox-group" id="deriveModeGroup">
+    <div class="derive-click-item" onclick="toggleDeriveMode('普通模式', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">普通模式</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveMode('困难模式', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">困难模式</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveMode('挑战模式', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">挑战模式</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveMode('死斗模式', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">死斗模式</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveMode('外挂模式', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">外挂模式</span>
+    </div>
+  </div>
+</div>
+<div class="derive-option-group">
+  <div class="derive-option-title">选择难度（可选，不选则不限制）</div>
+  <div class="derive-checkbox-group" id="deriveDiffGroup">
+    <div class="derive-click-item" onclick="toggleDeriveDiff('1', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">1星</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveDiff('2', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">2星</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveDiff('3', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">3星</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveDiff('4', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">4星</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveDiff('5', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">5星</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveDiff('6', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">6星</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveDiff('7', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">7星</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveDiff('8', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">8星</span>
+    </div>
+    <div class="derive-click-item" onclick="toggleDeriveDiff('9', this)">
+      <span class="derive-item-icon">○</span>
+      <span class="derive-item-text">9星</span>
+    </div>
+  </div>
+</div>
+<div class="derive-option-group">
+  <div class="derive-option-title">推导英雄数</div>
+  <div class="number-select" id="deriveCountGroup">
+    <button class="number-btn" onclick="selectDeriveCount(1, this)">1位</button>
+    <button class="number-btn" onclick="selectDeriveCount(2, this)">2位</button>
+    <button class="number-btn selected" onclick="selectDeriveCount(3, this)">3位</button>
+    <button class="number-btn" onclick="selectDeriveCount(4, this)">4位</button>
+    <button class="number-btn" onclick="selectDeriveCount(5, this)">5位</button>
+  </div>
+</div>
+<div class="modal-actions">
+<button class="modal-btn derive-btn" onclick="startDerive()">开始推导</button>
+</div>
+</div>
+</div>
+<!-- 计算中遮罩 -->
+<div class="calculating-overlay" id="calculatingOverlay">
+<div class="calculating-content">
+<div class="calculating-spinner"></div>
+<div class="calculating-title">正在计算推导组合</div>
+<div class="calculating-info">
+<div class="calculating-row">
+<span class="calculating-label">可用英雄</span>
+<span class="calculating-value" id="calc-heroes">0</span>
+</div>
+<div class="calculating-row">
+<span class="calculating-label">推导位数</span>
+<span class="calculating-value" id="calc-count">0</span>
+</div>
+<div class="calculating-row">
+<span class="calculating-label">总组合数</span>
+<span class="calculating-value highlight" id="calc-total">0</span>
+</div>
+<div class="calculating-row">
+<span class="calculating-label">已计算</span>
+<span class="calculating-value" id="calc-processed">0</span>
+</div>
+<div class="calculating-row">
+<span class="calculating-label">当前最佳</span>
+<span class="calculating-value highlight" id="calc-best">+0</span>
+</div>
+<div class="calculating-row">
+<span class="calculating-label">计算速度</span>
+<span class="calculating-value" id="calc-speed">0/秒</span>
+</div>
+<div class="calculating-row">
+<span class="calculating-label">已用时间</span>
+<span class="calculating-value" id="calc-time">0秒</span>
+</div>
+<div class="calculating-progress">
+<div class="calculating-progress-bar" id="calc-progress-bar" style="width: 0%"></div>
+</div>
+</div>
+<div class="calculating-text" id="calc-status">正在初始化...</div>
+<div class="calculating-estimate" id="calc-estimate"></div>
+<button class="calculating-cancel-btn" onclick="cancelDeriveCalculation()">🛑 终止推导</button>
+</div>
+</div>
+<script>
+// ==================== Web Worker 代码 ====================
+// 将Worker代码作为字符串嵌入
+const workerScript = `
+// Web Worker 内部代码
+// 用于在后台线程中进行推导计算
+
+// 辅助函数：格式化数字
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+// 辅助函数：格式化时间估计
+function formatTimeEstimate(ms) {
+    if (ms < 1000) return '极短时间';
+    if (ms < 60000) {
+        const seconds = Math.ceil(ms / 1000);
+        return seconds + ' 秒';
+    }
+    if (ms < 3600000) {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = Math.ceil((ms % 60000) / 1000);
+        return seconds > 0 ? minutes + ' 分 ' + seconds + ' 秒' : minutes + ' 分钟';
+    }
+    const hours = Math.floor(ms / 3600000);
+    const minutes = Math.ceil((ms % 3600000) / 60000);
+    return minutes > 0 ? hours + ' 小时 ' + minutes + ' 分钟' : hours + ' 小时';
+}
+
+// 计算排列数
+function calculateCombinationCount(n, k) {
+    if (k > n) return 0;
+    if (k === 0 || k === n) return 1;
+    let result = 1n;
+    for (let i = 0; i < k; i++) {
+        result = result * BigInt(n - i);
+    }
+    return Number(result);
+}
+
+// 最小堆类 - 保持Top N结果
+class MinHeap {
+    constructor(maxSize) {
+        this.heap = [];
+        this.maxSize = maxSize;
+    }
+    
+    push(item) {
+        if (this.heap.length < this.maxSize) {
+            this.heap.push(item);
+            this.bubbleUp(this.heap.length - 1);
+        } else {
+            const currentMin = this.heap[0];
+            if (item.totalPromote > currentMin.totalPromote || 
+                (item.totalPromote === currentMin.totalPromote && parseInt(item.usedDiff) < parseInt(currentMin.usedDiff))) {
+                this.heap[0] = item;
+                this.bubbleDown(0);
+            }
+        }
+    }
+    
+    bubbleUp(index) {
+        while (index > 0) {
+            const parentIndex = Math.floor((index - 1) / 2);
+            const parent = this.heap[parentIndex];
+            const current = this.heap[index];
+            if (parent.totalPromote < current.totalPromote || 
+                (parent.totalPromote === current.totalPromote && parseInt(parent.usedDiff) <= parseInt(current.usedDiff))) {
+                break;
+            }
+            [this.heap[parentIndex], this.heap[index]] = [this.heap[index], this.heap[parentIndex]];
+            index = parentIndex;
+        }
+    }
+    
+    bubbleDown(index) {
+        const length = this.heap.length;
+        while (true) {
+            let smallest = index;
+            const left = 2 * index + 1;
+            const right = 2 * index + 2;
+            if (left < length) {
+                const leftItem = this.heap[left];
+                const smallestItem = this.heap[smallest];
+                if (leftItem.totalPromote < smallestItem.totalPromote || 
+                    (leftItem.totalPromote === smallestItem.totalPromote && parseInt(leftItem.usedDiff) < parseInt(smallestItem.usedDiff))) {
+                    smallest = left;
+                }
+            }
+            if (right < length) {
+                const rightItem = this.heap[right];
+                const smallestItem = this.heap[smallest];
+                if (rightItem.totalPromote < smallestItem.totalPromote || 
+                    (rightItem.totalPromote === smallestItem.totalPromote && parseInt(rightItem.usedDiff) < parseInt(smallestItem.usedDiff))) {
+                    smallest = right;
+                }
+            }
+            if (smallest === index) break;
+            [this.heap[smallest], this.heap[index]] = [this.heap[index], this.heap[smallest]];
+            index = smallest;
+        }
+    }
+    
+    toArray() {
+        return [...this.heap].sort((a, b) => {
+            if (b.totalPromote !== a.totalPromote) {
+                return b.totalPromote - a.totalPromote;
+            }
+            return parseInt(a.usedDiff) - parseInt(b.usedDiff);
+        });
+    }
+}
+
+// 动态计算每层应保留的组合数
+function calculateLayerRetention(layer, totalLayers, availableHeroes) {
+    if (layer === totalLayers) return 20; // 最终层固定保留20组
+    
+    // 中间层动态保留更多组合，确保最终能产生足够的不同组合
+    const baseRetention = 40; // 基础保留数
+    const heroCount = availableHeroes.length;
+    const complexityFactor = Math.min(3, Math.max(1, heroCount / 10));
+    return Math.min(100, Math.floor(baseRetention * complexityFactor * (totalLayers - layer + 1) / totalLayers));
+}
+
+// 确保组合唯一的函数
+function ensureUniqueCombinations(results, maxCount) {
+    if (!results || results.length === 0) return [];
+    
+    const uniqueResults = [];
+    const seenCombinations = new Set();
+    
+    for (const result of results) {
+        // 生成唯一键：英雄名称排序后连接
+        const heroNames = result.heroes.map(hero => hero.名称).sort().join('|');
+        const uniqueKey = heroNames + '|' + result.totalPromote + '|' + result.usedDiff;
+        
+        if (!seenCombinations.has(uniqueKey)) {
+            seenCombinations.add(uniqueKey);
+            uniqueResults.push(result);
+            
+            // 达到最大数量后停止
+            if (uniqueResults.length >= maxCount) break;
+        }
+    }
+    
+    return uniqueResults;
+}
+
+// 辅助函数：检查值是否为空
+function isNoRequirement(val) {
+    if (val === null || val === undefined) return true;
+    return !val || val === '/' || val === '-' || val === '' || val === '无';
+}
+
+// 辅助函数：解析需求列表
+function parseRequirementList(val) {
+    if (isNoRequirement(val)) return null;
+    return val.toString().split('/').map(v => v.trim()).filter(v => v);
+}
+
+// 辅助函数：标准化值
+function normalizeValue(val) {
+    if (!val) return '';
+    const v = val.toString().trim().toLowerCase();
+    return v;
+}
+
+// 辅助函数：标准化性别
+function normalizeGender(val) {
+    if (!val) return '';
+    const v = val.toString().trim().toLowerCase();
+    if (v === '女' || v === '女性' || v === 'female' || v === 'f') return '女';
+    if (v === '男' || v === '男性' || v === 'male' || v === 'm') return '男';
+    return v;
+}
+
+// 辅助函数：检查匹配
+function checkMatch(reqValue, heroValue) {
+    if (!reqValue || isNoRequirement(reqValue)) return true;
+    const reqStr = reqValue.toString().trim();
+    if (!heroValue) return false;
+    
+    if (reqStr.includes('/')) {
+        const options = reqStr.split('/').map(v => v.trim());
+        const heroValStr = heroValue.toString().trim();
+        if (reqStr.includes('女') || reqStr.includes('男') || reqStr.toLowerCase().includes('female') || reqStr.toLowerCase().includes('male')) {
+            const heroNormalized = normalizeGender(heroValStr);
+            return options.some(opt => normalizeGender(opt) === heroNormalized);
+        }
+        return options.some(opt => normalizeValue(opt) === normalizeValue(heroValStr));
+    }
+    
+    const heroValStr = heroValue.toString().trim();
+    if (reqStr.includes('女') || reqStr.includes('男') || reqStr.toLowerCase().includes('female') || reqStr.toLowerCase().includes('male')) {
+        return normalizeGender(reqStr) === normalizeGender(heroValStr);
+    }
+    return normalizeValue(reqStr) === normalizeValue(heroValStr);
+}
+
+// 辅助函数：检查模式匹配
+function checkModeMatch(selectedMode, equipModeReq) {
+    if (!selectedMode) {
+        if (isNoRequirement(equipModeReq)) {
+            return { pass: true, reason: '' };
+        } else {
+            return { pass: false, reason: '模式(' + equipModeReq + ')' };
+        }
+    }
+    if (isNoRequirement(equipModeReq)) {
+        return { pass: true, reason: '' };
+    }
+    const reqModes = parseRequirementList(equipModeReq);
+    if (reqModes && reqModes.includes(selectedMode)) {
+        return { pass: true, reason: '' };
+    }
+    return { pass: false, reason: '模式(' + equipModeReq + ')' };
+}
+
+// 辅助函数：检查难度匹配
+function checkDifficultyMatch(selectedDiff, equipDiffReq) {
+    if (!selectedDiff) return { pass: true, reason: '' };
+    if (isNoRequirement(equipDiffReq)) return { pass: true, reason: '' };
+    const reqDiffs = parseRequirementList(equipDiffReq);
+    if (reqDiffs && reqDiffs.includes(selectedDiff)) {
+        return { pass: true, reason: '' };
+    }
+    return { pass: false, reason: '难度(' + equipDiffReq + ')' };
+}
+
+// 构建晋升链
+function buildPromoteChain(equipName, hero, gameMode, gameDiff, equipInfoMap, equipTree, equipTierMap, maxDifficulty, visited = new Set()) {
+    const chain = [];
+    let curr = equipName;
+    let step = 0;
+    let totalPromote = 0;
+    let difficultyOptions = new Set();
+    
+    while (curr && step < 100) {
+        if (visited.has(curr)) {
+            chain.push({ name: curr, pass: false, reason: '循环引用', isLast: false, status: 'stop', isFinal: false, tier: equipTierMap[curr] || 0, bossName: '' });
+            break;
+        }
+        visited.add(curr);
+        
+        const data = equipInfoMap[curr];
+        const next = equipTree[curr] ? equipTree[curr][0] : null;
+        
+        if (!data) {
+            chain.push({ name: curr, pass: false, reason: '装备不存在', isLast: false, status: 'stop', isFinal: false, tier: equipTierMap[curr] || 0, bossName: '' });
+            break;
+        }
+        
+        let pass = true;
+        let failReasons = [];
+        
+        const modeResult = checkModeMatch(gameMode, data.游戏模式要求);
+        if (!modeResult.pass) {
+            pass = false;
+            failReasons.push(modeResult.reason);
+        }
+        
+        let equipDiffOptions = [];
+        if (!isNoRequirement(data.游戏难度要求)) {
+            equipDiffOptions = parseRequirementList(data.游戏难度要求);
+        } else {
+            equipDiffOptions = Array.from({length: maxDifficulty}, (_, i) => (i + 1).toString());
+        }
+        equipDiffOptions.forEach(d => {
+            if (!isNaN(d)) {
+                difficultyOptions.add(d);
+            }
+        });
+        
+        const diffResult = checkDifficultyMatch(gameDiff, data.游戏难度要求);
+        if (!diffResult.pass) {
+            pass = false;
+            failReasons.push(diffResult.reason);
+        }
+        
+        if (pass && !checkMatch(data.英雄属性要求, hero.属性)) {
+            pass = false;
+            failReasons.push('属性' + data.英雄属性要求);
+        }
+        if (pass && !checkMatch(data.英雄种族要求, hero.种族)) {
+            pass = false;
+            failReasons.push('种族' + data.英雄种族要求);
+        }
+        if (pass && !checkMatch(data.英雄阵营要求, hero.阵营)) {
+            pass = false;
+            failReasons.push('阵营' + data.英雄阵营要求);
+        }
+        if (pass && !checkMatch(data.英雄善恶要求, hero.善恶)) {
+            pass = false;
+            failReasons.push('善恶' + data.英雄善恶要求);
+        }
+        if (pass && !checkMatch(data.英雄性别要求, hero.性别)) {
+            pass = false;
+            failReasons.push('性别' + data.英雄性别要求);
+        }
+        
+        const isLast = pass && !next;
+        const isFinal = !equipTree[curr] || equipTree[curr].length === 0;
+        let bossName = '';
+        if (data['BOSS名称'] && !isNoRequirement(data['BOSS名称'])) {
+            bossName = data['BOSS名称'].toString().trim();
+        } else if (data['要求击杀Boss'] && !isNoRequirement(data['要求击杀Boss'])) {
+            bossName = data['要求击杀Boss'].toString().trim();
+        }
+        
+        let status = 'pass';
+        if (!pass) {
+            status = 'fail';
+        } else if (isLast) {
+            status = 'full';
+        } else if (next) {
+            const currParsed = parseEquipName(curr);
+            const nextParsed = parseEquipName(next);
+            if (currParsed.baseName !== nextParsed.baseName && nextParsed.isLv1) status = 'jump';
+        }
+        
+        chain.push({ name: curr, pass: pass, reason: failReasons.join(' '), isLast: isLast, status: status, isFinal: isFinal, tier: equipTierMap[curr] || 0, bossName: bossName });
+        
+        if (!pass) {
+            break;
+        }
+        if (next) {
+            totalPromote++;
+        }
+        curr = next;
+        step++;
+    }
+    
+    return { chain, totalPromote, difficultyOptions };
+}
+
+// 解析装备名称
+function parseEquipName(name) {
+    if (!name) return { baseName: name, level: null, isSealed: false, isLv1: false, sealedBaseName: '' };
+    name = name.toString().trim();
+    const sealedMatch = name.match(/^被封印的(.+)$/);
+    if (sealedMatch) {
+        const sealedText = sealedMatch[1].trim();
+        const typeMatch = sealedText.match(/传承之(.+)$/);
+        let sealedBaseName = '';
+        if (typeMatch) {
+            sealedBaseName = typeMatch[1].trim();
+        } else {
+            sealedBaseName = sealedText;
+        }
+        return { baseName: '被封印的' + sealedText, level: 0, isSealed: true, isLv1: false, sealedBaseName: sealedBaseName };
+    }
+    const lvMatch = name.match(/^(.+?)[_\\s]*Lv\\s*(\\d+)$/i);
+    if (lvMatch) {
+        const baseName = lvMatch[1].trim();
+        const level = parseInt(lvMatch[2]);
+        return { baseName, level, isSealed: false, isLv1: level === 1, sealedBaseName: '' };
+    }
+    const numMatch = name.match(/^([^\\d\\s]+)(\\d+)$/);
+    if (numMatch) {
+        const baseName = numMatch[1].trim();
+        const level = parseInt(numMatch[2]);
+        if (baseName.length >= 2) {
+            return { baseName, level, isSealed: false, isLv1: level === 1, sealedBaseName: '' };
+        }
+    }
+    return { baseName: name, level: null, isSealed: false, isLv1: false, sealedBaseName: '' };
+}
+
+// 计算英雄单模式最佳
+function calculateHeroSingleModeBest(hero, modeName, currentEquips, equipInfoMap, equipTree, equipTierMap, maxDifficulty, ALL_DISPLAY_MODES) {
+    const selectedMode = modeName === '普通模式' ? '' : modeName;
+    let bestPromote = 0;
+    let bestDiff = null;
+    let bestResult = null;
+    
+    for (let diff = 1; diff <= maxDifficulty; diff++) {
+        const gameDiff = diff.toString();
+        const result = calculateHeroPromoteForMode(hero, selectedMode, gameDiff, currentEquips, equipInfoMap, equipTree, equipTierMap, maxDifficulty);
+        const total = result.totalPromote;
+        const minRequired = result.minRequiredDiff || diff;
+        
+        if (total > bestPromote) {
+            bestPromote = total;
+            bestDiff = minRequired;
+            bestResult = result;
+        } else if (total === bestPromote && total > 0) {
+            if (bestDiff === null || minRequired < bestDiff) {
+                bestDiff = minRequired;
+                bestResult = result;
+            }
+        }
+    }
+    
+    if (bestPromote <= 0) return null;
+    return { modeName, maxPromote: bestPromote, minDiff: bestDiff, bestResult };
+}
+
+// 计算英雄晋升（单模式单难度）
+function calculateHeroPromoteForMode(hero, gameMode, gameDiff, currentEquips, equipInfoMap, equipTree, equipTierMap, maxDifficulty) {
+    const equips = currentEquips || {};
+    let totalPromote = 0;
+    const slotDetails = [];
+    const finalEquips = { ...equips };
+    let allDifficultyOptions = null;
+    
+    const suffix = hero.属性 === '力量' ? 'str' : hero.属性 === '敏捷' ? 'agi' : 'int';
+    const SLOT_ORDER = ['weapon', 'offhand', 'armor', 'belt'];
+    const SLOT_LABELS = { weapon: '武器', offhand: '副手', armor: '铠甲', belt: '腰带' };
+    
+    SLOT_ORDER.forEach(slot => {
+        const posId = slot + '_' + suffix;
+        const equipName = equips[posId];
+        if (!equipName) return;
+        
+        const chainResult = buildPromoteChain(equipName, hero, gameMode, gameDiff, equipInfoMap, equipTree, equipTierMap, maxDifficulty);
+        totalPromote += chainResult.totalPromote;
+        slotDetails.push({ slot: slot, label: SLOT_LABELS[slot], chainResult: chainResult });
+        
+        if (chainResult.chain.length > 0) {
+            finalEquips[posId] = chainResult.chain[chainResult.chain.length - 1].name;
+        }
+        
+        if (allDifficultyOptions === null) {
+            allDifficultyOptions = new Set(chainResult.difficultyOptions);
+        } else {
+            for (let d of allDifficultyOptions) {
+                if (!chainResult.difficultyOptions.has(d)) {
+                    allDifficultyOptions.delete(d);
+                }
+            }
+        }
+    });
+    
+    const POSITIONS_COMMON = [
+        { id: 'bracelet', label: '护腕', partType: '护腕' },
+        { id: 'glove', label: '手套', partType: '手套' },
+        { id: 'pants', label: '长裤', partType: '长裤' },
+        { id: 'helmet', label: '头盔', partType: '头盔' },
+        { id: 'necklace', label: '项链', partType: '项链' },
+        { id: 'ring', label: '戒指', partType: '戒指' },
+        { id: 'cloak', label: '披风', partType: '披风' }
+    ];
+    
+    POSITIONS_COMMON.forEach(pos => {
+        const equipName = equips[pos.id];
+        if (!equipName) return;
+        
+        const chainResult = buildPromoteChain(equipName, hero, gameMode, gameDiff, equipInfoMap, equipTree, equipTierMap, maxDifficulty);
+        totalPromote += chainResult.totalPromote;
+        slotDetails.push({ slot: pos.id, label: pos.label, chainResult: chainResult });
+        
+        if (chainResult.chain.length > 0) {
+            finalEquips[pos.id] = chainResult.chain[chainResult.chain.length - 1].name;
+        }
+        
+        if (allDifficultyOptions === null) {
+            allDifficultyOptions = new Set(chainResult.difficultyOptions);
+        } else {
+            for (let d of allDifficultyOptions) {
+                if (!chainResult.difficultyOptions.has(d)) {
+                    allDifficultyOptions.delete(d);
+                }
+            }
+        }
+    });
+    
+    const minRequiredDiff = parseInt(gameDiff) || 1;
+    return { totalPromote: totalPromote, slotDetails: slotDetails, finalEquips: finalEquips, minRequiredDiff: minRequiredDiff };
+}
+
+// 生成器函数 - 按需生成排列
+function* createCombinationGenerator(heroes, k, startIndex = 0, endIndex = Infinity) {
+    const n = heroes.length;
+    if (k > n || k <= 0) return;
+    
+    const used = new Array(n).fill(false);
+    const current = [];
+    let count = 0;
+    
+    function* backtrack() {
+        if (current.length === k) {
+            if (count >= startIndex && count < endIndex) {
+                yield current.map(i => heroes[i]);
+            }
+            count++;
+            return;
+        }
+        for (let i = 0; i < n; i++) {
+            if (!used[i]) {
+                used[i] = true;
+                current.push(i);
+                yield* backtrack();
+                current.pop();
+                used[i] = false;
+            }
+        }
+    }
+    
+    yield* backtrack();
+}
+
+// 主计算函数
+function performDeriveCalculation(data) {
+    const { availableHeroes, deriveHeroCount, selectedEquipment, equipInfoMap, equipTree, equipTierMap, maxDifficulty, ALL_DISPLAY_MODES, MAX_FINAL_RESULTS, BATCH_SIZE, startIndex = 0, endIndex = Infinity, workerId } = data;
+    
+    const n = availableHeroes.length;
+    const k = deriveHeroCount;
+    const totalCombos = calculateCombinationCount(n, k);
+    
+    // 预计算所有英雄的最佳装备结果缓存
+    const heroBestResultsCache = new Map();
+    
+    const startTime = Date.now();
+    let lastProgressTime = startTime;
+    let processed = 0;
+    let bestPromote = 0;
+    
+    // 发送进度更新
+    function sendProgressUpdate(currentProcessed, currentBestPromote, currentHeroes = []) {
+        const currentTime = Date.now();
+        const elapsed = currentTime - startTime;
+        const processingSpeed = Math.round(currentProcessed / (elapsed / 1000) || 0);
+        
+        self.postMessage({
+            type: 'progress',
+            processed: currentProcessed,
+            total: totalCombos,
+            bestPromote: currentBestPromote,
+            elapsed: elapsed,
+            estimatedRemaining: 0,
+            processingSpeed: processingSpeed,
+            progress: totalCombos > 0 ? (currentProcessed / totalCombos * 100) : 0,
+            currentHeroes: currentHeroes.map(hero => ({
+                name: hero.名称,
+                attr: hero.属性
+            })),
+            bestCombo: currentBestPromote > 0 ? {
+                heroes: currentHeroes.map(hero => ({
+                    name: hero.名称,
+                    attr: hero.属性
+                })),
+                totalPromote: currentBestPromote,
+                usedMode: '',
+                usedDiff: ''
+            } : null
+        });
+        
+        lastProgressTime = currentTime;
+    }
+    
+    availableHeroes.forEach(hero => {
+        const heroKey = hero.名称;
+        const heroResults = [];
+        
+        ALL_DISPLAY_MODES.forEach(modeName => {
+            const best = calculateHeroSingleModeBest(hero, modeName, selectedEquipment, equipInfoMap, equipTree, equipTierMap, maxDifficulty, ALL_DISPLAY_MODES);
+            if (best) {
+                heroResults.push(best);
+            }
+        });
+        
+        if (heroResults.length > 0) {
+            // 按主界面的排序规则排序
+            heroResults.sort((a, b) => {
+                if (b.maxPromote !== a.maxPromote) return b.maxPromote - a.maxPromote;
+                if (a.minDiff !== b.minDiff) return a.minDiff - b.minDiff;
+                return 0;
+            });
+            heroBestResultsCache.set(heroKey, heroResults);
+        }
+    });
+    
+    // 分层计算函数
+    function calculateLayeredCombinations() {
+        const totalLayers = k;
+        
+        // 第一层：计算所有第一位英雄的最佳结果
+        const layer1Results = [];
+        
+        for (let i = 0; i < availableHeroes.length; i++) {
+            const hero = availableHeroes[i];
+            const heroResults = heroBestResultsCache.get(hero.名称);
+            
+            if (!heroResults || heroResults.length === 0) continue;
+            
+            for (const result of heroResults) {
+                layer1Results.push({
+                    heroes: [hero],
+                    totalPromote: result.maxPromote,
+                    currentEquips: result.bestResult.finalEquips,
+                    details: [{
+                        hero: hero,
+                        promote: result.maxPromote,
+                        finalEquips: result.bestResult.finalEquips,
+                        slotDetails: result.bestResult.slotDetails,
+                        chainPosition: 1,
+                        isPreferred: false,
+                        usedMode: result.modeName === '普通模式' ? '' : result.modeName,
+                        usedDiff: result.minDiff.toString(),
+                        minDiff: result.minDiff
+                    }],
+                    usedMode: result.modeName === '普通模式' ? '' : result.modeName,
+                    usedDiff: result.minDiff.toString()
+                });
+            }
+            
+            // 定期发送进度更新
+            if (i % 10 === 0) {
+                processed = layer1Results.length;
+                const currentBest = layer1Results.length > 0 ? Math.max(...layer1Results.map(r => r.totalPromote)) : 0;
+                if (currentBest > bestPromote) bestPromote = currentBest;
+                sendProgressUpdate(processed, bestPromote, layer1Results.length > 0 ? layer1Results[0].heroes : []);
+            }
+        }
+        
+        // 对第一层结果进行排序和过滤
+        layer1Results.sort((a, b) => {
+            if (b.totalPromote !== a.totalPromote) return b.totalPromote - a.totalPromote;
+            if (a.usedDiff !== b.usedDiff) return parseInt(a.usedDiff) - parseInt(b.usedDiff);
+            return 0;
+        });
+        
+        // 计算第一层应保留的组合数
+        const layer1Retention = calculateLayerRetention(1, totalLayers, availableHeroes);
+        
+        // 过滤第一层结果
+        let filteredLayer1 = [];
+        if (layer1Results.length > 0) {
+            const maxPromote = layer1Results[0].totalPromote;
+            filteredLayer1 = layer1Results.filter(result => result.totalPromote === maxPromote);
+            
+            if (filteredLayer1.length > layer1Retention) {
+                filteredLayer1 = filteredLayer1.slice(0, layer1Retention);
+            } else if (filteredLayer1.length < layer1Retention) {
+                // 如果最高晋升数组合不足，再添加次高的
+                const remaining = layer1Retention - filteredLayer1.length;
+                const nextResults = layer1Results.filter(result => result.totalPromote < maxPromote).slice(0, remaining);
+                filteredLayer1 = [...filteredLayer1, ...nextResults];
+            }
+        }
+        
+        processed = filteredLayer1.length;
+        const currentBest = filteredLayer1.length > 0 ? filteredLayer1[0].totalPromote : 0;
+        if (currentBest > bestPromote) bestPromote = currentBest;
+        sendProgressUpdate(processed, bestPromote, filteredLayer1.length > 0 ? filteredLayer1[0].heroes : []);
+        
+        if (k === 1) {
+            return ensureUniqueCombinations(filteredLayer1, MAX_FINAL_RESULTS);
+        }
+        
+        // 第二层：计算前两位英雄的组合
+        const layer2Results = [];
+        const equipStateCache = new Map();
+        
+        function generateEquipStateKey(hero, equips) {
+            const sortedEquips = {};
+            Object.keys(equips).sort().forEach(key => {
+                sortedEquips[key] = equips[key];
+            });
+            return hero.名称 + '||' + JSON.stringify(sortedEquips);
+        }
+        
+        for (let i = 0; i < filteredLayer1.length; i++) {
+            const layer1 = filteredLayer1[i];
+            const firstHeroIndex = availableHeroes.indexOf(layer1.heroes[0]);
+            
+            for (let j = 0; j < availableHeroes.length; j++) {
+                if (j === firstHeroIndex) continue; // 避免重复英雄
+                
+                const secondHero = availableHeroes[j];
+                const equipStateKey = generateEquipStateKey(secondHero, layer1.currentEquips);
+                
+                let bestHeroResult = null;
+                let bestHeroPromote = -1;
+                
+                if (equipStateCache.has(equipStateKey)) {
+                    bestHeroResult = equipStateCache.get(equipStateKey);
+                    bestHeroPromote = bestHeroResult.maxPromote;
+                } else {
+                    ALL_DISPLAY_MODES.forEach(modeName => {
+                        const result = calculateHeroSingleModeBest(secondHero, modeName, layer1.currentEquips, equipInfoMap, equipTree, equipTierMap, maxDifficulty, ALL_DISPLAY_MODES);
+                        if (result) {
+                            if (result.maxPromote > bestHeroPromote) {
+                                bestHeroPromote = result.maxPromote;
+                                bestHeroResult = result;
+                            }
+                        }
+                    });
+                    
+                    if (bestHeroResult) {
+                        equipStateCache.set(equipStateKey, bestHeroResult);
+                    }
+                }
+                
+                if (bestHeroResult) {
+                    const totalPromote = layer1.totalPromote + bestHeroResult.maxPromote;
+                    
+                    layer2Results.push({
+                        heroes: [...layer1.heroes, secondHero],
+                        totalPromote: totalPromote,
+                        currentEquips: bestHeroResult.bestResult.finalEquips,
+                        details: [...layer1.details, {
+                            hero: secondHero,
+                            promote: bestHeroResult.maxPromote,
+                            finalEquips: bestHeroResult.bestResult.finalEquips,
+                            slotDetails: bestHeroResult.bestResult.slotDetails,
+                            chainPosition: 2,
+                            isPreferred: false,
+                            usedMode: bestHeroResult.modeName === '普通模式' ? '' : bestHeroResult.modeName,
+                            usedDiff: bestHeroResult.minDiff.toString(),
+                            minDiff: bestHeroResult.minDiff
+                        }],
+                        usedMode: layer1.usedMode,
+                        usedDiff: layer1.usedDiff
+                    });
+                }
+                
+                // 定期发送进度更新
+                if ((i * availableHeroes.length + j) % 50 === 0) {
+                    processed = layer2Results.length;
+                    const currentBest = layer2Results.length > 0 ? Math.max(...layer2Results.map(r => r.totalPromote)) : 0;
+                    if (currentBest > bestPromote) bestPromote = currentBest;
+                    sendProgressUpdate(processed, bestPromote, layer2Results.length > 0 ? layer2Results[0].heroes : []);
+                }
+            }
+        }
+        
+        // 对第二层结果进行排序和过滤
+        layer2Results.sort((a, b) => {
+            if (b.totalPromote !== a.totalPromote) return b.totalPromote - a.totalPromote;
+            if (a.usedDiff !== b.usedDiff) return parseInt(a.usedDiff) - parseInt(b.usedDiff);
+            return 0;
+        });
+        
+        // 计算第二层应保留的组合数
+        const layer2Retention = calculateLayerRetention(2, totalLayers, availableHeroes);
+        
+        // 过滤第二层结果
+        let filteredLayer2 = [];
+        if (layer2Results.length > 0) {
+            const maxPromote = layer2Results[0].totalPromote;
+            filteredLayer2 = layer2Results.filter(result => result.totalPromote === maxPromote);
+            
+            if (filteredLayer2.length > layer2Retention) {
+                filteredLayer2 = filteredLayer2.slice(0, layer2Retention);
+            } else if (filteredLayer2.length < layer2Retention) {
+                const remaining = layer2Retention - filteredLayer2.length;
+                const nextResults = layer2Results.filter(result => result.totalPromote < maxPromote).slice(0, remaining);
+                filteredLayer2 = [...filteredLayer2, ...nextResults];
+            }
+        }
+        
+        processed = filteredLayer2.length;
+        const currentBest2 = filteredLayer2.length > 0 ? filteredLayer2[0].totalPromote : 0;
+        if (currentBest2 > bestPromote) bestPromote = currentBest2;
+        sendProgressUpdate(processed, bestPromote, filteredLayer2.length > 0 ? filteredLayer2[0].heroes : []);
+        
+        if (k === 2) {
+            return ensureUniqueCombinations(filteredLayer2, MAX_FINAL_RESULTS);
+        }
+        
+        // 第三层及以上：计算后续英雄的组合
+        let currentLayer = filteredLayer2;
+        
+        for (let layer = 3; layer <= k; layer++) {
+            const nextLayerResults = [];
+            
+            for (let i = 0; i < currentLayer.length; i++) {
+                const currentResult = currentLayer[i];
+                const usedHeroIndices = currentResult.heroes.map(hero => availableHeroes.indexOf(hero));
+                
+                for (let j = 0; j < availableHeroes.length; j++) {
+                    if (usedHeroIndices.includes(j)) continue; // 避免重复英雄
+                    
+                    const nextHero = availableHeroes[j];
+                    const equipStateKey = generateEquipStateKey(nextHero, currentResult.currentEquips);
+                    
+                    let bestHeroResult = null;
+                    let bestHeroPromote = -1;
+                    
+                    if (equipStateCache.has(equipStateKey)) {
+                        bestHeroResult = equipStateCache.get(equipStateKey);
+                        bestHeroPromote = bestHeroResult.maxPromote;
+                    } else {
+                        ALL_DISPLAY_MODES.forEach(modeName => {
+                            const result = calculateHeroSingleModeBest(nextHero, modeName, currentResult.currentEquips, equipInfoMap, equipTree, equipTierMap, maxDifficulty, ALL_DISPLAY_MODES);
+                            if (result) {
+                                if (result.maxPromote > bestHeroPromote) {
+                                    bestHeroPromote = result.maxPromote;
+                                    bestHeroResult = result;
+                                }
+                            }
+                        });
+                        
+                        if (bestHeroResult) {
+                            equipStateCache.set(equipStateKey, bestHeroResult);
+                        }
+                    }
+                    
+                    if (bestHeroResult) {
+                        const totalPromote = currentResult.totalPromote + bestHeroResult.maxPromote;
+                        
+                        nextLayerResults.push({
+                            heroes: [...currentResult.heroes, nextHero],
+                            totalPromote: totalPromote,
+                            currentEquips: bestHeroResult.bestResult.finalEquips,
+                            details: [...currentResult.details, {
+                                hero: nextHero,
+                                promote: bestHeroResult.maxPromote,
+                                finalEquips: bestHeroResult.bestResult.finalEquips,
+                                slotDetails: bestHeroResult.bestResult.slotDetails,
+                                chainPosition: layer,
+                                isPreferred: false,
+                                usedMode: bestHeroResult.modeName === '普通模式' ? '' : bestHeroResult.modeName,
+                                usedDiff: bestHeroResult.minDiff.toString(),
+                                minDiff: bestHeroResult.minDiff
+                            }],
+                            usedMode: currentResult.usedMode,
+                            usedDiff: currentResult.usedDiff
+                        });
+                    }
+                    
+                    // 定期发送进度更新
+                    if ((i * availableHeroes.length + j) % 20 === 0) {
+                        processed = nextLayerResults.length;
+                        const currentBest = nextLayerResults.length > 0 ? Math.max(...nextLayerResults.map(r => r.totalPromote)) : 0;
+                        if (currentBest > bestPromote) bestPromote = currentBest;
+                        sendProgressUpdate(processed, bestPromote, nextLayerResults.length > 0 ? nextLayerResults[0].heroes : []);
+                    }
+                }
+            }
+            
+            // 对当前层结果进行排序和过滤
+            nextLayerResults.sort((a, b) => {
+                if (b.totalPromote !== a.totalPromote) return b.totalPromote - a.totalPromote;
+                if (a.usedDiff !== b.usedDiff) return parseInt(a.usedDiff) - parseInt(b.usedDiff);
+                return 0;
+            });
+            
+            // 计算当前层应保留的组合数
+            const currentLayerRetention = calculateLayerRetention(layer, totalLayers, availableHeroes);
+            
+            // 过滤当前层结果
+            let filteredNextLayer = [];
+            if (nextLayerResults.length > 0) {
+                const maxPromote = nextLayerResults[0].totalPromote;
+                filteredNextLayer = nextLayerResults.filter(result => result.totalPromote === maxPromote);
+                
+                if (filteredNextLayer.length > currentLayerRetention) {
+                    filteredNextLayer = filteredNextLayer.slice(0, currentLayerRetention);
+                } else if (filteredNextLayer.length < currentLayerRetention) {
+                    const remaining = currentLayerRetention - filteredNextLayer.length;
+                    const nextResults = nextLayerResults.filter(result => result.totalPromote < maxPromote).slice(0, remaining);
+                    filteredNextLayer = [...filteredNextLayer, ...nextResults];
+                }
+            }
+            
+            currentLayer = filteredNextLayer;
+            
+            processed = currentLayer.length;
+            const currentBestLayer = currentLayer.length > 0 ? currentLayer[0].totalPromote : 0;
+            if (currentBestLayer > bestPromote) bestPromote = currentBestLayer;
+            sendProgressUpdate(processed, bestPromote, currentLayer.length > 0 ? currentLayer[0].heroes : []);
+            
+            if (currentLayer.length === 0) {
+                break;
+            }
+        }
+        
+        // 确保最终结果是唯一的组合
+        return ensureUniqueCombinations(currentLayer, MAX_FINAL_RESULTS);
+    }
+    
+
+    
+    const results = calculateLayeredCombinations();
+    const endTime = Date.now();
+    processed = results.length;
+    bestPromote = results.length > 0 ? results[0].totalPromote : 0;
+    
+    // 发送完成信息
+    self.postMessage({
+        type: 'progress',
+        processed: processed,
+        total: totalCombos,
+        bestPromote: bestPromote,
+        elapsed: endTime - startTime,
+        estimatedRemaining: 0,
+        processingSpeed: Math.round(processed / ((endTime - startTime) / 1000) || 0),
+        progress: 100,
+        currentHeroes: results.length > 0 ? results[0].heroes : [],
+        bestCombo: results.length > 0 ? {
+            heroes: results[0].heroes.map(hero => ({
+                name: hero.名称,
+                attr: hero.属性
+            })),
+            totalPromote: results[0].totalPromote,
+            usedMode: results[0].usedMode,
+            usedDiff: results[0].usedDiff
+        } : null
+    });
+    
+    return {
+        type: 'complete',
+        results: results,
+        processed: processed,
+        bestPromote: bestPromote
+    };
+}
+
+// 消息处理
+self.onmessage = function(e) {
+    const { type, data } = e.data;
+    
+    if (type === 'start') {
+        const result = performDeriveCalculation(data);
+        self.postMessage({
+            type: 'result',
+            result: result,
+            workerId: data.workerId
+        });
+    }
+};
+`;
+
+// 创建Web Worker
+let deriveWorkers = [];
+let deriveWorkerUrl = null;
+let workerResults = [];
+let completedWorkers = 0;
+let totalProcessed = 0;
+let globalBestPromote = 0;
+let globalTopResults = null;
+
+function createDeriveWorkers() {
+    // 清理旧的Workers
+    terminateAllWorkers();
+    
+    // 创建新的Workers
+    const blob = new Blob([workerScript], { type: 'application/javascript' });
+    deriveWorkerUrl = URL.createObjectURL(blob);
+    
+    for (let i = 0; i < WORKER_COUNT; i++) {
+        const worker = new Worker(deriveWorkerUrl);
+        worker.onmessage = function(e) {
+            const { type, result, workerId, ...progressData } = e.data;
+            
+            if (type === 'progress') {
+                updateMultiWorkerProgress(workerId, progressData);
+            } else if (type === 'result') {
+                handleWorkerResult(workerId, result);
+            }
+        };
+        
+        worker.onerror = function(error) {
+            console.error('Web Worker错误:', error);
+            hideCalculating();
+            alert('推导计算过程中发生错误：' + error.message);
+        };
+        
+        deriveWorkers.push(worker);
+    }
+}
+
+function terminateAllWorkers() {
+    deriveWorkers.forEach(worker => {
+        if (worker) {
+            worker.terminate();
+        }
+    });
+    deriveWorkers = [];
+    
+    if (deriveWorkerUrl) {
+        URL.revokeObjectURL(deriveWorkerUrl);
+        deriveWorkerUrl = null;
+    }
+    
+    workerResults = [];
+    completedWorkers = 0;
+    totalProcessed = 0;
+    globalBestPromote = 0;
+    globalTopResults = null;
+}
+
+// ==================== 主程序代码 ====================
+
+let equipmentData = [];
+let heroData = [];
+let equipTree = {};
+let equipInfoMap = {};
+let equipTierMap = {};
+let equipMaxTierMap = {};
+let selectedEquipment = {};
+let preferredHeroes = new Set();
+let currentFilter = null;
+let isLoadingFromStorage = false;
+let maxDifficulty = 5;
+let isDataLoaded = false;
+const ALL_GAME_MODES = ['困难模式', '挑战模式', '死斗模式', '外挂模式'];
+const ALL_DISPLAY_MODES = ['普通模式', ...ALL_GAME_MODES];
+
+// 推导功能相关变量
+let deriveSelectedAttrs = [];
+let deriveSelectedMode = [];
+let deriveSelectedDiff = null;
+let deriveHeroCount = 3;
+let deriveCalculationState = {
+    isRunning: false,
+    totalCombos: 0,
+    processedCombos: 0,
+    bestPromote: 0,
+    startTime: 0,
+    shouldStop: false
+};
+
+const MAX_FINAL_RESULTS = 50; // 最终结果保留50组
+const BATCH_SIZE = 10000; // 增加批处理大小，减少Worker通信频率
+const WORKER_COUNT = Math.max(2, Math.min(8, navigator.hardwareConcurrency || 4)); // 限制Worker数量在2-8之间
+
+
+
+const POSITIONS_ATTR = [
+    { id: 'weapon_str', label: '武器', partType: '武器', attr: '力量' },
+    { id: 'offhand_str', label: '副手', partType: '副武器', attr: '力量' },
+    { id: 'armor_str', label: '铠甲', partType: '铠甲', attr: '力量' },
+    { id: 'belt_str', label: '腰带', partType: '腰带', attr: '力量' },
+    { id: 'weapon_agi', label: '武器', partType: '武器', attr: '敏捷' },
+    { id: 'offhand_agi', label: '副手', partType: '副武器', attr: '敏捷' },
+    { id: 'armor_agi', label: '铠甲', partType: '铠甲', attr: '敏捷' },
+    { id: 'belt_agi', label: '腰带', partType: '腰带', attr: '敏捷' },
+    { id: 'weapon_int', label: '武器', partType: '武器', attr: '智力' },
+    { id: 'offhand_int', label: '副手', partType: '副武器', attr: '智力' },
+    { id: 'armor_int', label: '铠甲', partType: '铠甲', attr: '智力' },
+    { id: 'belt_int', label: '腰带', partType: '腰带', attr: '智力' }
+];
+
+const POSITIONS_COMMON = [
+    { id: 'bracelet', label: '护腕', partType: '护腕' },
+    { id: 'glove', label: '手套', partType: '手套' },
+    { id: 'pants', label: '长裤', partType: '长裤' },
+    { id: 'helmet', label: '头盔', partType: '头盔' },
+    { id: 'necklace', label: '项链', partType: '项链' },
+    { id: 'ring', label: '戒指', partType: '戒指' },
+    { id: 'cloak', label: '披风', partType: '披风' }
+];
+
+const SLOT_ORDER = ['weapon', 'offhand', 'armor', 'belt'];
+const SLOT_LABELS = { weapon: '武器', offhand: '副手', armor: '铠甲', belt: '腰带' };
+
+document.getElementById('equipFile').addEventListener('change', e => parseFile(e, 'equip'));
+document.getElementById('heroFile').addEventListener('change', e => parseFile(e, 'hero'));
+document.getElementById('importFile').addEventListener('change', e => handleImportFile(e));
+
+// ==================== 加载装备功能 ====================
+function loadHeroEquipment(result) {
+    if (!result || !result.finalEquips) {
+        return false;
+    }
+    let loadedCount = 0;
+    const suffix = result.hero.属性 === '力量' ? 'str' : result.hero.属性 === '敏捷' ? 'agi' : 'int';
+    SLOT_ORDER.forEach(slot => {
+        const posId = slot + '_' + suffix;
+        const equipName = result.finalEquips[posId];
+        if (equipName) {
+            selectedEquipment[posId] = equipName;
+            const selectEl = document.getElementById('select-' + posId);
+            if (selectEl) {
+                selectEl.value = equipName;
+                const tier = equipTierMap[equipName];
+                selectEl.className = getTierColorClass(tier) || '';
+            }
+            loadedCount++;
+        }
+    });
+    POSITIONS_COMMON.forEach(pos => {
+        const equipName = result.finalEquips[pos.id];
+        if (equipName) {
+            selectedEquipment[pos.id] = equipName;
+            const selectEl = document.getElementById('select-' + pos.id);
+            if (selectEl) {
+                selectEl.value = equipName;
+                const tier = equipTierMap[equipName];
+                selectEl.className = getTierColorClass(tier) || '';
+            }
+            loadedCount++;
+        }
+    });
+    saveEquipmentToStorage();
+    return loadedCount > 0;
+}
+
+function onLoadEquipment(index) {
+    if (!window.heroResults || !window.heroResults[index]) {
+        return;
+    }
+    const result = window.heroResults[index];
+    const heroName = result.hero.名称;
+    if (confirm('是否将 ' + heroName + ' 的最终装备加载至当前拥有的传承装备中？')) {
+        const btn = document.getElementById('load-btn-' + index);
+        if (btn) {
+            btn.textContent = '加载中...';
+            btn.classList.add('loading');
+        }
+        setTimeout(() => {
+            const success = loadHeroEquipment(result);
+            if (btn) {
+                btn.textContent = '加载';
+                btn.classList.remove('loading');
+            }
+            if (success) {
+                console.log('已成功加载 ' + heroName + ' 的装备');
+            } else {
+                alert('加载失败，该英雄没有可加载的装备');
+            }
+        }, 300);
+    }
+}
+
+// ==================== 启用/禁用界面控件 ====================
+function setWaitingState() {
+    const quickBtns = ['btn-prefer', 'btn-derive', 'btn-import', 'btn-export'];
+    quickBtns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = true;
+    });
+    const filterBtns = ['filter-str', 'filter-agi', 'filter-int'];
+    filterBtns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = true;
+    });
+    initEquipGridWaiting();
+}
+
+function initEquipGridWaiting() {
+    let htmlAttr = '';
+    POSITIONS_ATTR.forEach(pos => {
+        const attrClass = pos.attr === '力量' ? 'str' : pos.attr === '敏捷' ? 'agi' : 'int';
+        htmlAttr += '<div class="equip-card attr-equip ' + attrClass + '"> <label>' + pos.label + '(' + pos.attr + ')</label> <select id="select-' + pos.id + '" class="waiting" disabled> <option value="">等待数据...</option> </select> </div>';
+    });
+    document.getElementById('equipGridAttr').innerHTML = htmlAttr;
+    let htmlCommon = '';
+    POSITIONS_COMMON.forEach(pos => {
+        htmlCommon += '<div class="equip-card common"> <label>' + pos.label + '</label> <select id="select-' + pos.id + '" class="waiting" disabled> <option value="">等待数据...</option> </select> </div>';
+    });
+    document.getElementById('equipGridCommon').innerHTML = htmlCommon;
+}
+
+function enableControls() {
+    const quickBtns = ['btn-prefer', 'btn-derive', 'btn-import', 'btn-export'];
+    quickBtns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = false;
+    });
+    const filterBtns = ['filter-str', 'filter-agi', 'filter-int'];
+    filterBtns.forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.disabled = false;
+    });
+}
+
+// ==================== 全模式统计功能 ====================
+function calculateHeroPromoteForMode(hero, gameMode, gameDiff, currentEquips) {
+    const equips = currentEquips || selectedEquipment;
+    let totalPromote = 0;
+    const slotDetails = [];
+    const finalEquips = { ...equips };
+    let allDifficultyOptions = null;
+    const suffix = hero.属性 === '力量' ? 'str' : hero.属性 === '敏捷' ? 'agi' : 'int';
+    
+    SLOT_ORDER.forEach(slot => {
+        const posId = slot + '_' + suffix;
+        const equipName = equips[posId];
+        if (!equipName) return;
+        const chainResult = buildPromoteChain(equipName, hero, gameMode, gameDiff);
+        totalPromote += chainResult.totalPromote;
+        slotDetails.push({ slot: slot, label: SLOT_LABELS[slot], chainResult: chainResult });
+        if (chainResult.chain.length > 0) {
+            finalEquips[posId] = chainResult.chain[chainResult.chain.length - 1].name;
+        }
+        if (allDifficultyOptions === null) {
+            allDifficultyOptions = new Set(chainResult.difficultyOptions);
+        } else {
+            for (let d of allDifficultyOptions) {
+                if (!chainResult.difficultyOptions.has(d)) {
+                    allDifficultyOptions.delete(d);
+                }
+            }
+        }
+    });
+    
+    POSITIONS_COMMON.forEach(pos => {
+        const equipName = equips[pos.id];
+        if (!equipName) return;
+        const chainResult = buildPromoteChain(equipName, hero, gameMode, gameDiff);
+        totalPromote += chainResult.totalPromote;
+        slotDetails.push({ slot: pos.id, label: pos.label, chainResult: chainResult });
+        if (chainResult.chain.length > 0) {
+            finalEquips[pos.id] = chainResult.chain[chainResult.chain.length - 1].name;
+        }
+        if (allDifficultyOptions === null) {
+            allDifficultyOptions = new Set(chainResult.difficultyOptions);
+        } else {
+            for (let d of allDifficultyOptions) {
+                if (!chainResult.difficultyOptions.has(d)) {
+                    allDifficultyOptions.delete(d);
+                }
+            }
+        }
+    });
+    
+    const minRequiredDiff = parseInt(gameDiff) || 1;
+    return { totalPromote: totalPromote, slotDetails: slotDetails, finalEquips: finalEquips, minRequiredDiff: minRequiredDiff };
+}
+
+// ==================== 全模式单局最佳统计 ====================
+function calculateHeroSingleModeBest(hero, modeName, currentEquips) {
+    const selectedMode = modeName === '普通模式' ? '' : modeName;
+    let bestPromote = 0;
+    let bestDiff = null;
+    let bestResult = null;
+    
+    for (let diff = 1; diff <= maxDifficulty; diff++) {
+        const gameDiff = diff.toString();
+        const result = calculateHeroPromoteForMode(hero, selectedMode, gameDiff, currentEquips);
+        const total = result.totalPromote;
+        const minRequired = result.minRequiredDiff || diff;
+        
+        if (total > bestPromote) {
+            bestPromote = total;
+            bestDiff = minRequired;
+            bestResult = result;
+        } else if (total === bestPromote && total > 0) {
+            if (bestDiff === null || minRequired < bestDiff) {
+                bestDiff = minRequired;
+                bestResult = result;
+            }
+        }
+    }
+    
+    if (bestPromote <= 0) return null;
+    return { modeName, maxPromote: bestPromote, minDiff: bestDiff, bestResult };
+}
+
+function calculateAllModeStats(filterAttr) {
+    const rows = [];
+    heroData.filter(h => h.属性 === filterAttr).forEach(hero => {
+        const equips = selectedEquipment;
+        ALL_DISPLAY_MODES.forEach(modeName => {
+            const best = calculateHeroSingleModeBest(hero, modeName, equips);
+            if (!best) return;
+            rows.push({ hero, modeName: best.modeName, maxPromote: best.maxPromote, minDiff: best.minDiff, bestResult: best.bestResult, isPreferred: preferredHeroes.has(hero.名称) });
+        });
+    });
+    return rows;
+}
+
+function renderAllModeStats(heroModeRows, filterAttr) {
+    if (!heroModeRows || heroModeRows.length === 0) {
+        document.getElementById('resultBody').innerHTML = ' <div class="empty-state"> <div class="icon">😢</div> <p>没有找到 ' + filterAttr + ' 系英雄的可晋升方案</p> </div>';
+        return;
+    }
+    
+    heroModeRows.sort((a, b) => {
+        if (a.isPreferred && !b.isPreferred) return -1;
+        if (!a.isPreferred && b.isPreferred) return 1;
+        if (b.maxPromote !== a.maxPromote) return b.maxPromote - a.maxPromote;
+        if (a.minDiff !== b.minDiff) return a.minDiff - b.minDiff;
+        const modeOrder = { '普通模式': 0, '困难模式': 1, '挑战模式': 2, '死斗模式': 3, '外挂模式': 4 };
+        const modeA = modeOrder[a.modeName] !== undefined ? modeOrder[a.modeName] : 0;
+        const modeB = modeOrder[b.modeName] !== undefined ? modeOrder[b.modeName] : 0;
+        if (modeA !== modeB) return modeA - modeB;
+        if (a.hero.名称 < b.hero.名称) return -1;
+        if (a.hero.名称 > b.hero.名称) return 1;
+        return 0;
+    });
+    
+    const modeOrderIndex = name => ALL_DISPLAY_MODES.indexOf(name);
+    const groupMap = new Map();
+    
+    heroModeRows.forEach(r => {
+        const heroName = r.hero.名称;
+        const finals = r.bestResult && r.bestResult.finalEquips ? r.bestResult.finalEquips : {};
+        const normalizedFinals = {};
+        Object.keys(finals).sort().forEach(k => {
+            normalizedFinals[k] = finals[k];
+        });
+        const key = heroName + '||' + r.maxPromote + '||' + r.minDiff + '||' + JSON.stringify(normalizedFinals);
+        let g = groupMap.get(key);
+        if (!g) {
+            g = { hero: r.hero, maxPromote: r.maxPromote, minDiff: r.minDiff, bestResult: r.bestResult, isPreferred: r.isPreferred, modes: [r.modeName] };
+            groupMap.set(key, g);
+        } else {
+            if (!g.modes.includes(r.modeName)) {
+                g.modes.push(r.modeName);
+            }
+        }
+    });
+    
+    const groupedRows = Array.from(groupMap.values()).map(row => {
+        row.modes.sort((a, b) => modeOrderIndex(a) - modeOrderIndex(b));
+        return row;
+    });
+    
+    groupedRows.sort((a, b) => {
+        if (a.isPreferred && !b.isPreferred) return -1;
+        if (!a.isPreferred && b.isPreferred) return 1;
+        if (b.maxPromote !== a.maxPromote) return b.maxPromote - a.maxPromote;
+        if (a.minDiff !== b.minDiff) return a.minDiff - b.minDiff;
+        const modeOrder = { '普通模式': 0, '困难模式': 1, '挑战模式': 2, '死斗模式': 3, '外挂模式': 4 };
+        const modeA = modeOrder[a.modes[0]] !== undefined ? modeOrder[a.modes[0]] : 0;
+        const modeB = modeOrder[b.modes[0]] !== undefined ? modeOrder[b.modes[0]] : 0;
+        if (modeA !== modeB) return modeA - modeB;
+        if (a.hero.名称 < b.hero.名称) return -1;
+        if (a.hero.名称 > b.hero.名称) return 1;
+        return 0;
+    });
+    
+    window.heroResults = groupedRows.map(r => ({
+        hero: r.hero,
+        totalPromote: r.maxPromote,
+        isPreferred: r.isPreferred,
+        finalEquips: r.bestResult ? r.bestResult.finalEquips : {},
+        slotDetails: r.bestResult ? r.bestResult.slotDetails : [],
+        modes: r.modes,
+        minDiff: r.minDiff
+    }));
+    
+    const countKey = filterAttr === '力量' ? 'str' : filterAttr === '敏捷' ? 'agi' : 'int';
+    document.getElementById('count-' + countKey).textContent = groupedRows.length;
+    
+    let html = '';
+    groupedRows.forEach((row, index) => {
+        const hero = row.hero;
+        let rankClass = '';
+        if (index === 0) rankClass = 'top-rank';
+        else if (index === 1) rankClass = 'second-rank';
+        else if (index === 2) rankClass = 'third-rank';
+        if (row.isPreferred) rankClass += ' preferred';
+        
+        const attrClass = hero.属性 === '力量' ? 'str' : hero.属性 === '敏捷' ? 'agi' : 'int';
+        const modesLabel = row.modes.map(mode => {
+            let modeClass = '';
+            if (mode === '普通模式') modeClass = 'normal';
+            else if (mode === '困难模式') modeClass = 'difficult';
+            else if (mode === '挑战模式') modeClass = 'challenge';
+            else if (mode === '死斗模式') modeClass = 'deathmatch';
+            else if (mode === '外挂模式') modeClass = 'cheat';
+            return '<span class="tag mode ' + modeClass + '">' + mode + '</span>';
+        }).join(' ');
+        
+        const starClass = row.minDiff <= 3 ? 'star-1-3' : row.minDiff <= 6 ? 'star-4-6' : 'star-7-9';
+        const diffTag = '<span class="tag diff ' + starClass + '">' + row.minDiff + '星</span>';
+        const summaryText = '<span class="hero-name-' + attrClass + '">' + hero.名称 + '</span> ' + modesLabel + ' ' + diffTag;
+        const preferredTag = row.isPreferred ? '<span class="tag preferred">⭐ 偏好</span>' : '';
+        
+        html += '<div style="margin-bottom: 10px;"> <div class="combo-header" onclick="toggleComboDetails(this, \'all-' + index + '\')"> <span class="combo-number">' + (index + 1) + '.</span> <span class="combo-heroes">' + summaryText + '</span> <span class="combo-total">+' + row.maxPromote + '</span> <span class="combo-arrow">▼</span> </div> <div class="combo-details" id="combo-details-all-' + index + '"> <div class="hero-section ' + rankClass + ' ' + attrClass + '"> <div class="hero-header"> ' + (index < 3 ? '<span class="hero-rank rank-' + (index + 1) + '">' + (index + 1) + '</span>' : '') + ' <div class="hero-name">' + hero.名称 + '</div> <div class="hero-tags"> <span class="tag attr">' + hero.属性 + '</span> <span class="tag race">' + (hero.种族 || '-') + '</span> <span class="tag camp">' + (hero.阵营 || '-') + '</span> <span class="tag moral">' + (hero.善恶 || '-') + '</span> <span class="tag gender">' + (hero.性别 || '-') + '</span> ' + preferredTag + ' </div> <div class="hero-actions"> <button class="load-btn" id="load-btn-all-' + index + '" onclick="onLoadEquipment(' + index + ')">加载</button> <div class="hero-total"> <div class="hero-total-label">总计晋升</div> <div class="hero-total-num">+' + row.maxPromote + '</div> </div> </div> </div>';
+        
+        let hasAnySlot = false;
+        if (row.bestResult && row.bestResult.slotDetails) {
+            row.bestResult.slotDetails.forEach(slotData => {
+                const chain = slotData.chainResult.chain;
+                if (!chain || chain.length === 0) return;
+                const hasPromotion = chain.length > 1;
+                const lastIsFull = chain.length > 0 && chain[chain.length - 1].isFinal;
+                const isOnlyFull = chain.length === 1 && lastIsFull;
+                if (!hasPromotion && !lastIsFull) return;
+                if (isOnlyFull) return;
+                hasAnySlot = true;
+                const isCommonSlot = POSITIONS_COMMON.some(p => p.id === slotData.slot);
+                const { html: chainHtml } = renderChain(slotData.chainResult, isCommonSlot, false);
+                html += '<div class="equip-detail ' + (isCommonSlot ? 'common-slot' : '') + '"> <div class="equip-title ' + (isCommonSlot ? 'common' : '') + '">' + slotData.label + ':</div> ' + chainHtml + ' </div>';
+            });
+        }
+        if (!hasAnySlot) {
+            html += '<div class="no-equip-hint">无晋升装备</div>';
+        }
+        html += '</div> </div> </div>';
+    });
+    
+    document.getElementById('resultBody').innerHTML = html;
+}
+
+// ==================== 偏好英雄功能 ====================
+function openPreferHeroModal() {
+    if (!isDataLoaded || heroData.length === 0) {
+        alert('请先导入英雄数据！');
+        return;
+    }
+    renderHeroCheckboxes();
+    document.getElementById('preferHeroModal').classList.add('show');
+}
+
+function closePreferHeroModal() {
+    document.getElementById('preferHeroModal').classList.remove('show');
+    if (currentFilter) {
+        calculatePromote(currentFilter);
+    }
+}
+
+function renderHeroCheckboxes() {
+    const container = document.getElementById('heroCheckboxes');
+    const heroesByAttr = {
+        '力量': heroData.filter(h => h.属性 === '力量'),
+        '敏捷': heroData.filter(h => h.属性 === '敏捷'),
+        '智力': heroData.filter(h => h.属性 === '智力')
+    };
+    
+    let html = '';
+    Object.keys(heroesByAttr).forEach(attr => {
+        const heroes = heroesByAttr[attr];
+        if (heroes.length === 0) return;
+        const attrClass = attr === '力量' ? 'str' : attr === '敏捷' ? 'agi' : 'int';
+        html += '<div class="hero-group"> <div class="hero-group-title ' + attrClass + '">' + attr + '系英雄 (' + heroes.length + ')</div> <div class="clickable-grid">';
+        heroes.forEach((hero) => {
+            const heroKey = hero.名称;
+            const isSelected = preferredHeroes.has(heroKey);
+            html += '<div class="clickable-item ' + (isSelected ? 'selected' : '') + '" onclick="togglePreferHero(\'' + heroKey.replace(/'/g, "\\'") + '\', this)"> <span class="item-icon">' + (isSelected ? '●' : '○') + '</span> <span class="item-text" title="' + hero.名称 + '">' + hero.名称 + '</span> </div>';
+        });
+        html += '</div></div>';
+    });
+    container.innerHTML = html;
+    updateSelectedCount();
+}
+
+function togglePreferHero(heroName, element) {
+    if (preferredHeroes.has(heroName)) {
+        preferredHeroes.delete(heroName);
+        element.classList.remove('selected');
+        element.querySelector('.item-icon').textContent = '○';
+    } else {
+        preferredHeroes.add(heroName);
+        element.classList.add('selected');
+        element.querySelector('.item-icon').textContent = '●';
+    }
+    savePreferHeroToStorage();
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const countEl = document.getElementById('selectedCount');
+    if (countEl) {
+        countEl.textContent = '已选: ' + preferredHeroes.size;
+    }
+    const btnCountEl = document.getElementById('preferCount');
+    if (btnCountEl) {
+        btnCountEl.textContent = preferredHeroes.size;
+    }
+    const btn = document.getElementById('btn-prefer');
+    if (btn) {
+        if (preferredHeroes.size > 0) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    }
+}
+
+function selectAllPrefer() {
+    heroData.forEach(hero => {
+        preferredHeroes.add(hero.名称);
+    });
+    renderHeroCheckboxes();
+    savePreferHeroToStorage();
+}
+
+function clearPreferHero() {
+    preferredHeroes.clear();
+    renderHeroCheckboxes();
+    savePreferHeroToStorage();
+}
+
+function savePreferHeroToStorage() {
+    try {
+        localStorage.setItem('zhengtu_preferred_heroes', JSON.stringify([...preferredHeroes]));
+    } catch (e) {
+        console.warn('无法保存偏好英雄到本地存储:', e);
+    }
+}
+
+function loadPreferHeroFromStorage() {
+    try {
+        const saved = localStorage.getItem('zhengtu_preferred_heroes');
+        if (saved) {
+            const heroes = JSON.parse(saved);
+            if (heroes && Array.isArray(heroes)) {
+                preferredHeroes = new Set(heroes);
+            }
+        }
+    } catch (e) {
+        console.warn('无法从本地存储加载偏好英雄:', e);
+    }
+}
+
+// ==================== 推导功能 ====================
+function openDeriveModal() {
+    if (!isDataLoaded) {
+        alert('请先导入数据！');
+        return;
+    }
+    deriveSelectedAttrs = [];
+    deriveSelectedDiff = null;
+    document.querySelectorAll('#deriveAttrGroup .derive-click-item').forEach(el => {
+        el.classList.remove('selected', 'str', 'agi', 'int', 'common', 'disabled');
+        el.querySelector('.derive-item-icon').textContent = '○';
+    });
+    document.querySelectorAll('#deriveDiffGroup .derive-click-item').forEach(el => {
+        el.classList.remove('selected', 'diff');
+        el.querySelector('.derive-item-icon').textContent = '○';
+    });
+    deriveHeroCount = 3;
+    document.querySelectorAll('#deriveCountGroup .number-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    document.querySelectorAll('#deriveCountGroup .number-btn')[2].classList.add('selected');
+    document.getElementById('deriveModal').classList.add('show');
+}
+
+function closeDeriveModal() {
+    document.getElementById('deriveModal').classList.remove('show');
+}
+
+function toggleDeriveAttr(attr, element) {
+    const icon = element.querySelector('.derive-item-icon');
+    const attrClass = attr === '力量' ? 'str' : attr === '敏捷' ? 'agi' : 'int';
+    if (deriveSelectedAttrs.includes(attr)) {
+        deriveSelectedAttrs = deriveSelectedAttrs.filter(a => a !== attr);
+        element.classList.remove('selected', attrClass);
+        icon.textContent = '○';
+    } else {
+        deriveSelectedAttrs.push(attr);
+        element.classList.add('selected', attrClass);
+        icon.textContent = '●';
+    }
+}
+
+function toggleDeriveMode(mode, element) {
+    const icon = element.querySelector('.derive-item-icon');
+    if (deriveSelectedMode.includes(mode)) {
+        deriveSelectedMode = deriveSelectedMode.filter(m => m !== mode);
+        element.classList.remove('selected', 'diff');
+        icon.textContent = '○';
+    } else {
+        deriveSelectedMode.push(mode);
+        element.classList.add('selected', 'diff');
+        icon.textContent = '●';
+    }
+}
+
+function toggleDeriveDiff(diff, element) {
+    const icon = element.querySelector('.derive-item-icon');
+    if (deriveSelectedDiff === diff) {
+        deriveSelectedDiff = null;
+        element.classList.remove('selected', 'diff');
+        icon.textContent = '○';
+    } else {
+        document.querySelectorAll('#deriveDiffGroup .derive-click-item').forEach(el => {
+            el.classList.remove('selected', 'diff');
+            el.querySelector('.derive-item-icon').textContent = '○';
+        });
+        deriveSelectedDiff = diff;
+        element.classList.add('selected', 'diff');
+        icon.textContent = '●';
+    }
+}
+
+function selectDeriveCount(count, element) {
+    deriveHeroCount = count;
+    document.querySelectorAll('#deriveCountGroup .number-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    element.classList.add('selected');
+}
+
+function startDerive() {
+    if (deriveSelectedAttrs.length === 0) {
+        deriveSelectedAttrs = ['力量', '敏捷', '智力'];
+    }
+    closeDeriveModal();
+    
+    let availableHeroes;
+    if (preferredHeroes.size > 0) {
+        availableHeroes = heroData.filter(h => preferredHeroes.has(h.名称) && deriveSelectedAttrs.includes(h.属性));
+    } else {
+        availableHeroes = heroData.filter(h => deriveSelectedAttrs.includes(h.属性));
+    }
+    
+    if (availableHeroes.length === 0) {
+        document.getElementById('resultBody').innerHTML = ' <div class="empty-state"> <div class="icon">😢</div> <p>' + (preferredHeroes.size > 0 ? '没有找到符合条件的偏好英雄，请检查属性筛选' : '没有找到符合条件的英雄') + '</p> </div>';
+        return;
+    }
+    
+    const effectiveMaxDiff = deriveSelectedDiff ? parseInt(deriveSelectedDiff) : maxDifficulty;
+    
+    // 根据所选模式过滤可用的模式列表
+    let displayModes = ALL_DISPLAY_MODES;
+    if (deriveSelectedMode.length > 0) {
+        displayModes = deriveSelectedMode;
+    }
+    
+    // 计算总组合数
+    const n = availableHeroes.length;
+    const k = deriveHeroCount;
+    let totalCombos = 1;
+    for (let i = 0; i < k; i++) {
+        totalCombos = totalCombos * (n - i);
+    }
+    
+    // 重置进度数据
+    workerProgressMap = new Map();
+    totalProcessed = 0;
+    globalBestPromote = 0;
+    
+    // 初始化多线程Workers
+    createDeriveWorkers();
+    
+    // 分割组合索引范围给多个Worker
+    const combosPerWorker = Math.ceil(totalCombos / WORKER_COUNT);
+    const workerTasks = [];
+    
+    for (let i = 0; i < WORKER_COUNT; i++) {
+        const startIdx = i * combosPerWorker;
+        const endIdx = Math.min(startIdx + combosPerWorker, totalCombos);
+        
+        if (startIdx < totalCombos) {
+            workerTasks.push({
+                workerId: i,
+                startIndex: startIdx,
+                endIndex: endIdx
+            });
+        }
+    }
+    
+    // 显示计算界面
+    showCalculating(availableHeroes, deriveHeroCount, totalCombos, deriveSelectedDiff);
+    
+    // 启动所有Workers
+    workerTasks.forEach(task => {
+        const workerData = {
+            workerId: task.workerId,
+            availableHeroes: availableHeroes,
+            deriveHeroCount: deriveHeroCount,
+            selectedEquipment: selectedEquipment,
+            equipInfoMap: equipInfoMap,
+            equipTree: equipTree,
+            equipTierMap: equipTierMap,
+            maxDifficulty: effectiveMaxDiff,
+            deriveSelectedDiff: deriveSelectedDiff,
+            ALL_DISPLAY_MODES: displayModes,
+            MAX_FINAL_RESULTS: MAX_FINAL_RESULTS,
+            BATCH_SIZE: BATCH_SIZE,
+            startIndex: task.startIndex,
+            endIndex: task.endIndex
+        };
+        
+        deriveWorkers[task.workerId].postMessage({
+            type: 'start',
+            data: workerData
+        });
+    });
+}
+
+function formatNumber(num) {
+    if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M';
+    } else if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+}
+
+function showCalculating(heroes, count, totalCombos, selectedDiff) {
+    deriveCalculationState = {
+        isRunning: true,
+        totalCombos: totalCombos,
+        processedCombos: 0,
+        bestPromote: 0,
+        startTime: Date.now(),
+        shouldStop: false
+    };
+    
+    document.getElementById('calc-heroes').textContent = heroes.length;
+    document.getElementById('calc-count').textContent = count;
+    document.getElementById('calc-total').textContent = formatNumber(totalCombos);
+    document.getElementById('calc-processed').textContent = '0';
+    document.getElementById('calc-best').textContent = '+0';
+    document.getElementById('calc-progress-bar').style.width = '0%';
+    document.getElementById('calc-status').textContent = '正在初始化计算...';
+    document.getElementById('calc-estimate').textContent = selectedDiff ? '限制难度: ' + selectedDiff + '星及以下' : '';
+    
+    const spinner = document.querySelector('.calculating-spinner');
+    if (spinner) {
+        spinner.style.animation = 'spin 1s linear infinite';
+    }
+    
+    document.getElementById('calculatingOverlay').classList.add('show');
+}
+
+// 存储每个Worker的处理进度
+let workerProgressMap = new Map();
+let lastProgressUpdateTime = 0;
+
+function updateMultiWorkerProgress(workerId, data) {
+    if (!deriveCalculationState.isRunning) return;
+    
+    const { processed, bestPromote, elapsed, estimatedRemaining, processingSpeed, progress, currentHeroes, bestCombo } = data;
+    
+    // 存储每个Worker的进度，避免重复累加
+    workerProgressMap.set(workerId, {
+        processed: processed,
+        bestPromote: bestPromote,
+        elapsed: elapsed,
+        processingSpeed: processingSpeed,
+        currentHeroes: currentHeroes,
+        bestCombo: bestCombo
+    });
+    
+    // 计算总处理数
+    totalProcessed = 0;
+    let maxElapsed = 0;
+    let totalSpeed = 0;
+    let workerCount = 0;
+    
+    workerProgressMap.forEach(progressData => {
+        totalProcessed += progressData.processed;
+        maxElapsed = Math.max(maxElapsed, progressData.elapsed);
+        totalSpeed += progressData.processingSpeed;
+        workerCount++;
+    });
+    
+    // 更新全局最佳结果
+    if (bestPromote > globalBestPromote) {
+        globalBestPromote = bestPromote;
+    }
+    
+    deriveCalculationState.processedCombos = totalProcessed;
+    deriveCalculationState.bestPromote = globalBestPromote;
+    
+    // 计算整体进度
+    const overallProgress = deriveCalculationState.totalCombos > 0 
+        ? (totalProcessed / deriveCalculationState.totalCombos * 100) 
+        : 0;
+    
+    // 更新UI
+    document.getElementById('calc-processed').textContent = formatNumber(totalProcessed);
+    document.getElementById('calc-best').textContent = '+' + globalBestPromote;
+    document.getElementById('calc-progress-bar').style.width = overallProgress.toFixed(1) + '%';
+    
+    if (totalProcessed > 0 && maxElapsed > 1000) {
+        // 计算平均处理速度
+        const avgSpeed = workerCount > 0 ? Math.round(totalSpeed / workerCount) : 0;
+        
+        // 重新计算剩余时间估计
+        const avgTimePerCombo = maxElapsed / totalProcessed;
+        const remaining = Math.max(0, deriveCalculationState.totalCombos - totalProcessed);
+        const estimatedRemaining = avgTimePerCombo * remaining;
+        const estimateText = formatTimeEstimate(estimatedRemaining);
+        
+        document.getElementById('calc-estimate').textContent = '预计剩余时间: ' + estimateText;
+        document.getElementById('calc-speed').textContent = avgSpeed + '/秒';
+        
+        const elapsedTime = Math.round(maxElapsed / 1000);
+        document.getElementById('calc-time').textContent = elapsedTime + '秒';
+        
+        document.getElementById('calc-status').textContent = '正在计算组合...';
+    }
+}
+
+function handleWorkerResult(workerId, result) {
+    workerResults[workerId] = result;
+    completedWorkers++;
+    
+    if (result.bestPromote > globalBestPromote) {
+        globalBestPromote = result.bestPromote;
+    }
+    
+    if (completedWorkers === deriveWorkers.length) {
+        mergeAndDisplayResults();
+    }
+}
+
+function mergeAndDisplayResults() {
+    const allResults = [];
+    
+    workerResults.forEach(result => {
+        if (result && result.results) {
+            allResults.push(...result.results);
+        }
+    });
+    
+    allResults.sort((a, b) => {
+        if (b.totalPromote !== a.totalPromote) return b.totalPromote - a.totalPromote;
+        if (a.usedDiff !== b.usedDiff) return parseInt(a.usedDiff) - parseInt(b.usedDiff);
+        const modeOrder = { '普通模式': 0, '困难模式': 1, '挑战模式': 2, '死斗模式': 3, '外挂模式': 4 };
+        const modeA = modeOrder[a.usedMode] !== undefined ? modeOrder[a.usedMode] : (a.usedMode === '' ? 0 : 4);
+        const modeB = modeOrder[b.usedMode] !== undefined ? modeOrder[b.usedMode] : (b.usedMode === '' ? 0 : 4);
+        if (modeA !== modeB) return modeA - modeB;
+        return 0;
+    });
+    
+    // 去重：当多条结果一致时只显示一条
+    const uniqueResults = [];
+    const seenCombinations = new Set();
+    
+    allResults.forEach(result => {
+        // 生成唯一键：英雄名称排序后连接 + 总晋升数 + 难度
+        const heroNames = result.heroes.map(hero => hero.名称).sort().join('|');
+        const uniqueKey = heroNames + '|' + result.totalPromote + '|' + result.usedDiff;
+        
+        if (!seenCombinations.has(uniqueKey)) {
+            seenCombinations.add(uniqueKey);
+            uniqueResults.push(result);
+            
+            // 达到最大数量后停止
+            if (uniqueResults.length >= MAX_FINAL_RESULTS) {
+                return false;
+            }
+        }
+    });
+    
+    const topResults = uniqueResults;
+    
+    hideCalculating();
+    renderDeriveResult(topResults);
+}
+
+function formatTimeEstimate(ms) {
+    if (ms < 1000) return '极短时间';
+    if (ms < 60000) {
+        const seconds = Math.ceil(ms / 1000);
+        return seconds + ' 秒';
+    }
+    if (ms < 3600000) {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = Math.ceil((ms % 60000) / 1000);
+        return seconds > 0 ? minutes + ' 分 ' + seconds + ' 秒' : minutes + ' 分钟';
+    }
+    const hours = Math.floor(ms / 3600000);
+    const minutes = Math.ceil((ms % 3600000) / 60000);
+    return minutes > 0 ? hours + ' 小时 ' + minutes + ' 分钟' : hours + ' 小时';
+}
+
+function hideCalculating() {
+    deriveCalculationState.isRunning = false;
+    const spinner = document.querySelector('.calculating-spinner');
+    if (spinner) {
+        spinner.style.animation = 'none';
+    }
+    document.getElementById('calculatingOverlay').classList.remove('show');
+}
+
+function cancelDeriveCalculation() {
+    deriveCalculationState.shouldStop = true;
+    deriveCalculationState.isRunning = false;
+    
+    document.getElementById('calc-status').textContent = '正在终止推导...';
+    document.getElementById('calc-estimate').textContent = '取消中...';
+    
+    // 终止所有Workers
+    terminateAllWorkers();
+    
+    setTimeout(() => {
+        // 显示已计算的组合
+        mergeAndDisplayResults();
+    }, 500);
+}
+
+function renderDeriveResult(comboResults) {
+    let modeTag = '';
+    modeTag = '<span class="tag mode">全模式</span><span class="tag diff">最佳难度</span>';
+    
+    const usingPreferred = preferredHeroes.size > 0;
+    const diffTag = deriveSelectedDiff ? '<span class="tag diff">' + deriveSelectedDiff + '星及以下</span>' : '';
+    const attrDisplay = deriveSelectedAttrs.map(a => a + '系').join('、');
+    let html = '<div class="derive-result-header"> <div class="derive-result-title">📊 推导结果（' + deriveHeroCount + '位英雄连续推导）</div> <div class="derive-result-info"> <span>' + (usingPreferred ? '使用偏好英雄' : '使用全部英雄') + '</span> <span>属性筛选: ' + attrDisplay + '</span> <span>有效组合: ' + formatNumber(comboResults.length) + '</span> ' + diffTag + ' ' + modeTag + ' </div> </div>';
+    
+    comboResults.forEach((result, comboIndex) => {
+        const comboRankClass = comboIndex === 0 ? 'top-rank' : comboIndex === 1 ? 'second-rank' : comboIndex === 2 ? 'third-rank' : '';
+        
+        const heroNames = result.details.map(detail => {
+            const hero = detail.hero;
+            const attr = hero.属性;
+    const attrClass = attr === '力量' ? 'str' : attr === '敏捷' ? 'agi' : 'int';
+            const mode = detail.usedMode || '普通模式';
+            const modeClass = mode === '普通模式' ? 'normal' : mode === '困难模式' ? 'difficult' : mode === '挑战模式' ? 'challenge' : mode === '死斗模式' ? 'deathmatch' : 'cheat';
+            const diff = detail.usedDiff;
+            const starClass = parseInt(diff) <= 3 ? 'star-1-3' : parseInt(diff) <= 6 ? 'star-4-6' : 'star-7-9';
+            return '<span class="hero-name-' + attrClass + '">' + hero.名称 + '</span> <span class="tag mode ' + modeClass + '">' + mode + '</span> <span class="tag diff ' + starClass + '">' + diff + '星</span>';
+        });
+        
+        const comboDisplay = heroNames.join(' + ');
+        
+        html += '<div style="margin-bottom: 10px;"> <div class="combo-header" onclick="toggleComboDetails(this, ' + comboIndex + ')"> <span class="combo-number">' + (comboIndex + 1) + '.</span> <span class="combo-heroes">' + comboDisplay + '</span> <span class="combo-total">+' + result.totalPromote + '</span> <span class="combo-arrow">▼</span> </div> <div class="combo-details" id="combo-details-' + comboIndex + '"> <div class="hero-section derive-result"> <div class="hero-header"> </div>';
+        
+        result.details.forEach((detail, heroIndex) => {
+            const hero = detail.hero;
+            const isPreferred = detail.isPreferred;
+            const chainPos = detail.chainPosition;
+            const preferredTag = isPreferred ? '<span class="tag preferred">⭐ 偏好</span>' : '';
+            const heroAttrClass = hero.属性 === '力量' ? 'str' : hero.属性 === '敏捷' ? 'agi' : 'int';
+            const mode = detail.usedMode || '普通模式';
+            const modeClass = mode === '普通模式' ? 'normal' : mode === '困难模式' ? 'difficult' : mode === '挑战模式' ? 'challenge' : mode === '死斗模式' ? 'deathmatch' : 'cheat';
+            const diff = detail.usedDiff;
+            const starClass = parseInt(diff) <= 3 ? 'star-1-3' : parseInt(diff) <= 6 ? 'star-4-6' : 'star-7-9';
+            
+            html += '<div class="hero-section derive-result ' + heroAttrClass + '" style="margin-left: 20px; margin-top: 15px;"> <div class="hero-header"> <span class="tag chain-pos">第' + chainPos + '位</span> <div class="hero-name">' + hero.名称 + '</div> <div class="hero-tags"> <span class="tag attr">' + hero.属性 + '</span> <span class="tag race">' + (hero.种族 || '-') + '</span> <span class="tag camp">' + (hero.阵营 || '-') + '</span> <span class="tag moral">' + (hero.善恶 || '-') + '</span> <span class="tag gender">' + (hero.性别 || '-') + '</span> <span class="tag mode ' + modeClass + '">' + mode + '</span> <span class="tag diff ' + starClass + '">' + diff + '星</span> ' + preferredTag + ' </div> <div class="hero-actions"> <button class="load-btn" id="derive-load-btn-' + comboIndex + '-' + heroIndex + '" onclick="onDeriveLoad(' + comboIndex + ', ' + heroIndex + ')"><span>加载</span></button> <div class="hero-total"> <div class="hero-total-label">晋升</div> <div class="hero-total-num">+' + detail.promote + '</div> </div> </div> </div>';
+            
+            let hasAnySlot = false;
+            detail.slotDetails.forEach(slotData => {
+                const chain = slotData.chainResult.chain;
+                if (!chain || chain.length === 0) return;
+                const hasPromotion = chain.length > 1;
+                const lastIsFull = chain.length > 0 && chain[chain.length - 1].isFinal;
+                const isOnlyFull = chain.length === 1 && lastIsFull;
+                if (isOnlyFull) return;
+                if (hasPromotion || lastIsFull) {
+                    hasAnySlot = true;
+                    const isCommonSlot = POSITIONS_COMMON.some(p => p.id === slotData.slot);
+                    const { html: chainHtml } = renderChain(slotData.chainResult, isCommonSlot, false);
+                    html += '<div class="equip-detail ' + (isCommonSlot ? 'common-slot' : '') + '"> <div class="equip-title ' + (isCommonSlot ? 'common' : '') + '">' + slotData.label + ':</div> ' + chainHtml + ' </div>';
+                }
+            });
+            
+            if (!hasAnySlot) {
+                html += '<div class="no-equip-hint">无晋升装备</div>';
+            }
+            html += '</div>';
+        });
+        
+        html += '</div> </div> </div>';
+    });
+    
+    if (comboResults.length === 0) {
+        html += '<div class="empty-state"> <div class="icon">😢</div> <p>没有找到符合条件的推导组合</p> </div>';
+    }
+    
+    document.getElementById('resultBody').innerHTML = html;
+    window.deriveResults = comboResults;
+}
+
+function onDeriveLoad(comboIndex, heroIndex) {
+    if (!window.deriveResults || !window.deriveResults[comboIndex]) {
+        return;
+    }
+    const combo = window.deriveResults[comboIndex];
+    const detail = combo.details[heroIndex];
+    const heroName = detail.hero.名称;
+    
+    if (confirm('是否将 ' + heroName + ' 的最终装备加载至当前拥有的传承装备中？')) {
+        const btn = document.getElementById('derive-load-btn-' + comboIndex + '-' + heroIndex);
+        if (btn) {
+            btn.textContent = '加载中...';
+            btn.classList.add('loading');
+        }
+        setTimeout(() => {
+            const result = { hero: detail.hero, finalEquips: detail.finalEquips };
+            const success = loadHeroEquipment(result);
+            if (btn) {
+                btn.textContent = '加载';
+                btn.classList.remove('loading');
+            }
+            if (success) {
+                console.log('已成功加载 ' + heroName + ' 的装备');
+            } else {
+                alert('加载失败，该英雄没有可加载的装备');
+            }
+        }, 300);
+    }
+}
+
+// ==================== 其他功能 ====================
+function analyzeMaxDifficulty() {
+    let maxDiff = 5;
+    equipmentData.forEach(item => {
+        const diffReq = item.游戏难度要求;
+        if (!diffReq || diffReq === '/' || diffReq === '-' || diffReq === '' || diffReq === '无') {
+            return;
+        }
+        const diffStr = diffReq.toString().trim();
+        if (diffStr.includes('/')) {
+            const parts = diffStr.split('/');
+            parts.forEach(part => {
+                const num = parseInt(part.trim());
+                if (!isNaN(num) && num > maxDiff) {
+                    maxDiff = num;
+                }
+            });
+        } else {
+            const num = parseInt(diffStr);
+            if (!isNaN(num) && num > maxDiff) {
+                maxDiff = num;
+            }
+        }
+    });
+    maxDifficulty = maxDiff;
+    return maxDifficulty;
+}
+
+function applyParsedData(type, parsedData, statusEl) {
+    if (type === 'equip') {
+        equipmentData = parsedData;
+        statusEl.textContent = '✅ ' + parsedData.length + ' 条';
+        statusEl.className = 'status success';
+        buildEquipTree();
+        initEquipGrid();
+        isDataLoaded = true;
+        enableControls();
+        analyzeMaxDifficulty();
+    } else {
+        heroData = parsedData;
+        statusEl.textContent = '✅ ' + parsedData.length + ' 条';
+        statusEl.className = 'status success';
+        loadPreferHeroFromStorage();
+        preferredHeroes = new Set([...preferredHeroes].filter(name => heroData.some(h => h.名称 === name)));
+        savePreferHeroToStorage();
+        if (currentFilter) calculatePromote(currentFilter);
+    }
+}
+
+function parseXlsxDataToObjects(dataUint8, type) {
+    const workbook = XLSX.read(dataUint8, { type: 'array' });
+    const parsedData = [];
+    workbook.SheetNames.forEach(sheetName => {
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        if (jsonData.length > 1) {
+            let headerRowIndex = -1;
+            if (type === 'equip') {
+                for (let i = 0; i < jsonData.length; i++) {
+                    if (jsonData[i] && jsonData[i].some(c => c && c.toString().includes('传承名称'))) {
+                        headerRowIndex = i;
+                        break;
+                    }
+                }
+            } else {
+                for (let i = 0; i < jsonData.length; i++) {
+                    if (jsonData[i] && jsonData[i].some(c => c === '名称')) {
+                        headerRowIndex = i;
+                        break;
+                    }
+                }
+            }
+            if (headerRowIndex === -1) headerRowIndex = 0;
+            const headers = jsonData[headerRowIndex].map((h, i) => {
+                const val = h ? h.toString().trim() : '';
+                return val ? { key: val, index: i } : null;
+            }).filter(Boolean);
+            
+            jsonData.slice(headerRowIndex + 1).forEach(row => {
+                if (!row || (!row[0] && !row[1])) return;
+                const item = { _sheet: sheetName };
+                headers.forEach(h => {
+                    const val = row[h.index];
+                    item[h.key] = val !== undefined ? val : '';
+                });
+                if (type === 'equip' && item['传承名称']) {
+                    item['传承名称'] = item['传承名称'].toString().replace(/\|cffff8000\(精英\)\|r/g, '').replace(/"/g, '').replace(/\n/g, '').trim();
+                }
+                const nameKey = type === 'equip' ? '传承名称' : '名称';
+                if (item[nameKey]) parsedData.push(item);
+            });
+        }
+    });
+    return parsedData;
+}
+
+async function loadXlsxFromUrlList(urlList, type) {
+    const statusEl = type === 'equip' ? document.getElementById('equipStatus') : document.getElementById('heroStatus');
+    if (!statusEl) return false;
+    
+    for (const url of urlList) {
+        try {
+            statusEl.textContent = '下载中...';
+            statusEl.className = 'status empty';
+            const res = await fetch(url, { cache: 'no-store' });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const ab = await res.arrayBuffer();
+            const data = new Uint8Array(ab);
+            const parsed = parseXlsxDataToObjects(data, type);
+            applyParsedData(type, parsed, statusEl);
+            return true;
+        } catch (e) {
+            console.warn('远程加载失败(' + type + '):', url, e);
+        }
+    }
+    statusEl.textContent = '未导入';
+    statusEl.className = 'status empty';
+    return false;
+}
+
+async function autoLoadRemoteXlsxIfPossible() {
+    if (!(location && (location.protocol === 'http:' || location.protocol === 'https:'))) return;
+    await loadXlsxFromUrlList(['equip.xlsx'], 'equip');
+    await loadXlsxFromUrlList(['hero.xlsx'], 'hero');
+}
+
+function parseFile(event, type) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const statusEl = type === 'equip' ? document.getElementById('equipStatus') : document.getElementById('heroStatus');
+    statusEl.textContent = '解析中...';
+    statusEl.className = 'status empty';
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = new Uint8Array(e.target.result);
+            const parsedData = parseXlsxDataToObjects(data, type);
+            applyParsedData(type, parsedData, statusEl);
+        } catch (error) {
+            console.error(error);
+            statusEl.textContent = '❌ 失败';
+            statusEl.className = 'status error';
+        }
+    };
+    reader.readAsArrayBuffer(file);
+    event.target.value = '';
+}
+
+function exportEquipment() {
+    if (!isDataLoaded) {
+        alert('请先导入传承装备数据！');
+        return;
+    }
+    const hasEquipment = Object.keys(selectedEquipment).some(key => selectedEquipment[key]);
+    if (!hasEquipment) {
+        alert('请先选择传承装备！');
+        return;
+    }
+    
+    const exportData = {
+        version: '1.0',
+        exportTime: new Date().toLocaleString('zh-CN'),
+        equipment: selectedEquipment,
+        preferredHeroes: [...preferredHeroes]
+    };
+    
+    const jsonStr = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const now = new Date();
+    const dateStr = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '_' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    link.download = '传承装备_' + dateStr + '.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function importEquipment() {
+    if (!isDataLoaded) {
+        alert('请先导入传承装备数据文件！');
+        return;
+    }
+    document.getElementById('importFile').click();
+}
+
+function handleImportFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const jsonStr = e.target.result;
+            const importData = JSON.parse(jsonStr);
+            if (!importData.version || !importData.equipment) {
+                alert('文件格式不正确，无法导入！');
+                return;
+            }
+            if (typeof importData.equipment !== 'object' || importData.equipment === null) {
+                alert('文件格式不正确，无法导入！');
+                return;
+            }
+            
+            applyImportedEquipment(importData.equipment);
+            
+            if (importData.preferredHeroes && Array.isArray(importData.preferredHeroes)) {
+                preferredHeroes = new Set(importData.preferredHeroes);
+                preferredHeroes = new Set([...preferredHeroes].filter(name => heroData.some(h => h.名称 === name)));
+                savePreferHeroToStorage();
+            }
+            
+            alert('✅ 成功导入 ' + Object.keys(importData.equipment).filter(k => importData.equipment[k]).length + ' 个装备选择！\n偏好英雄: ' + preferredHeroes.size + ' 个\n导出时间: ' + importData.exportTime);
+        } catch (error) {
+            console.error(error);
+            alert('导入失败，请确保选择的是正确的装备导出文件！');
+        }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function applyImportedEquipment(equipment) {
+    if (!equipmentData || equipmentData.length === 0) {
+        alert('请先导入传承装备数据文件，再导入装备选择！');
+        return;
+    }
+    
+    let appliedCount = 0;
+    const newSelectedEquipment = {};
+    const allPositions = [...POSITIONS_ATTR.map(p => p.id), ...POSITIONS_COMMON.map(p => p.id)];
+    
+    allPositions.forEach(posId => {
+        const importValue = equipment[posId];
+        if (importValue && typeof importValue === 'string') {
+            const equipExists = equipmentData.some(e => {
+                const name = e.传承名称 ? e.传承名称.toString().trim() : '';
+                return name === importValue;
+            });
+            
+            if (equipExists) {
+                newSelectedEquipment[posId] = importValue;
+                appliedCount++;
+                
+                const selectEl = document.getElementById('select-' + posId);
+                if (selectEl) {
+                    selectEl.value = importValue;
+                    const tier = equipTierMap[importValue];
+                    selectEl.className = getTierColorClass(tier) || '';
+                }
+            }
+        }
+    });
+    
+    selectedEquipment = newSelectedEquipment;
+    saveEquipmentToStorage();
+    
+    if (currentFilter) {
+        calculatePromote(currentFilter);
+    }
+    
+    if (appliedCount === 0) {
+        alert('没有找到匹配的装备，可能装备数据已更新！');
+    }
+}
+
+function saveEquipmentToStorage() {
+    try {
+        localStorage.setItem('zhengtu_equipment', JSON.stringify(selectedEquipment));
+    } catch (e) {
+        console.warn('无法保存到本地存储:', e);
+    }
+}
+
+function loadEquipmentFromStorage() {
+    try {
+        const saved = localStorage.getItem('zhengtu_equipment');
+        if (saved) {
+            const equipment = JSON.parse(saved);
+            if (equipment && typeof equipment === 'object') {
+                if (Object.keys(equipment).length > 0) {
+                    isLoadingFromStorage = true;
+                    applyImportedEquipment(equipment);
+                    isLoadingFromStorage = false;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('无法从本地存储加载:', e);
+    }
+}
+
+function parseEquipName(name) {
+    if (!name) return { baseName: name, level: null, isSealed: false, isLv1: false, sealedBaseName: '' };
+    name = name.toString().trim();
+    
+    const sealedMatch = name.match(/^被封印的(.+)$/);
+    if (sealedMatch) {
+        const sealedText = sealedMatch[1].trim();
+        const typeMatch = sealedText.match(/传承之(.+)$/);
+        let sealedBaseName = '';
+        if (typeMatch) {
+            sealedBaseName = typeMatch[1].trim();
+        } else {
+            sealedBaseName = sealedText;
+        }
+        return { baseName: '被封印的' + sealedText, level: 0, isSealed: true, isLv1: false, sealedBaseName: sealedBaseName };
+    }
+    
+    const lvMatch = name.match(/^(.+?)[_\s]*Lv\s*(\d+)$/i);
+    if (lvMatch) {
+        const baseName = lvMatch[1].trim();
+        const level = parseInt(lvMatch[2]);
+        return { baseName, level, isSealed: false, isLv1: level === 1, sealedBaseName: '' };
+    }
+    
+    const numMatch = name.match(/^([^\d\s]+)(\d+)$/);
+    if (numMatch) {
+        const baseName = numMatch[1].trim();
+        const level = parseInt(numMatch[2]);
+        if (baseName.length >= 2) {
+            return { baseName, level, isSealed: false, isLv1: level === 1, sealedBaseName: '' };
+        }
+    }
+    
+    return { baseName: name, level: null, isSealed: false, isLv1: false, sealedBaseName: '' };
+}
+
+function findSealedUpgradeTarget(sealedEquip, lv1Equips) {
+    if (!lv1Equips || lv1Equips.length === 0) return null;
+    return lv1Equips[0];
+}
+
+function buildEquipTree() {
+    equipTree = {};
+    equipInfoMap = {};
+    equipTierMap = {};
+    equipMaxTierMap = {};
+    
+    equipmentData.forEach(item => {
+        const cleanName = item.传承名称 ? item.传承名称.toString().trim() : '';
+        equipInfoMap[cleanName] = item;
+    });
+    
+    const groups = {};
+    equipmentData.forEach(e => {
+        const key = e.传承部位 + '|' + (e.英雄属性要求 || '无');
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(e);
+    });
+    
+    Object.keys(groups).forEach(groupKey => {
+        const equips = groups[groupKey];
+        const parsedEquips = equips.map(e => {
+            const parsed = parseEquipName(e.传承名称);
+            return {
+                equip: e,
+                name: e.传承名称 ? e.传承名称.toString().trim() : '',
+                baseName: parsed.baseName,
+                level: parsed.level,
+                isSealed: parsed.isSealed,
+                isLv1: parsed.isLv1,
+                sealedBaseName: parsed.sealedBaseName
+            };
+        });
+        
+        const sealedEquips = parsedEquips.filter(e => e.isSealed);
+        const lv1Equips = parsedEquips.filter(e => e.isLv1 && !e.isSealed);
+        
+        sealedEquips.forEach(sealed => {
+            equipTierMap[sealed.name] = 0;
+        });
+        
+        const baseNameLevelMap = new Map();
+        parsedEquips.forEach(e => {
+            if (!e.isSealed && e.level !== null && !baseNameLevelMap.has(e.baseName)) {
+                baseNameLevelMap.set(e.baseName, e.level);
+            }
+        });
+        
+        const uniqueBaseNames = Array.from(baseNameLevelMap.keys()).sort((a, b) => {
+            return baseNameLevelMap.get(a) - baseNameLevelMap.get(b);
+        });
+        
+        const baseNameTierMap = new Map();
+        uniqueBaseNames.forEach((baseName, index) => {
+            baseNameTierMap.set(baseName, index + 1);
+        });
+        
+        parsedEquips.forEach(e => {
+            if (!e.isSealed && e.level !== null) {
+                equipTierMap[e.name] = baseNameTierMap.get(e.baseName);
+            }
+        });
+        
+        if (uniqueBaseNames.length > 0) {
+            const maxBaseName = uniqueBaseNames[uniqueBaseNames.length - 1];
+            parsedEquips.forEach(e => {
+                if (e.baseName === maxBaseName) {
+                    equipMaxTierMap[e.name] = true;
+                }
+            });
+        }
+        
+        sealedEquips.forEach(sealed => {
+            const target = findSealedUpgradeTarget(sealed, lv1Equips);
+            if (target) {
+                equipTree[sealed.name] = [target.name];
+            }
+        });
+        
+        const maxLevel = parsedEquips.reduce((max, e) => (e.level !== null && e.level > max) ? e.level : max, 0);
+        
+        for (let level = 1; level <= maxLevel; level++) {
+            const currLevelEquips = parsedEquips.filter(e => e.level === level);
+            const nextLevelEquips = parsedEquips.filter(e => e.level === level + 1);
+
+            currLevelEquips.forEach(curr => {
+                if (equipTree[curr.name]) return;
+                const next = nextLevelEquips.find(n => n.baseName === curr.baseName);
+                if (next) {
+                    equipTree[curr.name] = [next.name];
+                }
+            });
+        }
+
+        parsedEquips.forEach(p => {
+            if (equipTree[p.name]) return;
+            const index = uniqueBaseNames.indexOf(p.baseName);
+            if (index === -1 || index === uniqueBaseNames.length - 1) return;
+            const nextBaseName = uniqueBaseNames[index + 1];
+            const nextLv1 = lv1Equips.find(lv1 => lv1.baseName === nextBaseName);
+            if (nextLv1) {
+                equipTree[p.name] = [nextLv1.name];
+            }
+        });
+    });
+}
+
+function isFinalEquipment(equipName) {
+    return !equipTree[equipName] || equipTree[equipName].length === 0;
+}
+
+function getTierColorClass(tier) {
+    if (tier === undefined || tier === null) return '';
+    const normalizedTier = Math.max(0, Math.min(9, Math.floor(tier)));
+    return 'tier-' + normalizedTier;
+}
+
+function initEquipGrid() {
+    let htmlAttr = '';
+    POSITIONS_ATTR.forEach(pos => {
+        const attrClass = pos.attr === '力量' ? 'str' : pos.attr === '敏捷' ? 'agi' : 'int';
+        htmlAttr += ' <div class="equip-card attr-equip ' + attrClass + '"> <label>' + pos.label + '(' + pos.attr + ')</label> <select id="select-' + pos.id + '" onchange="onEquipChange(\'' + pos.id + '\', this.value)"> <option value="">-- 待导入 --</option> </select> </div> ';
+    });
+    document.getElementById('equipGridAttr').innerHTML = htmlAttr;
+    
+    let htmlCommon = '';
+    POSITIONS_COMMON.forEach(pos => {
+        htmlCommon += ' <div class="equip-card common"> <label>' + pos.label + '</label> <select id="select-' + pos.id + '" onchange="onEquipChange(\'' + pos.id + '\', this.value)"> <option value="">-- 待导入 --</option> </select> </div> ';
+    });
+    document.getElementById('equipGridCommon').innerHTML = htmlCommon;
+    
+    POSITIONS_ATTR.forEach(pos => updateEquipSelect(pos));
+    POSITIONS_COMMON.forEach(pos => updateEquipSelect(pos));
+    
+    setTimeout(() => {
+        if (equipmentData.length > 0) {
+            loadEquipmentFromStorage();
+        }
+    }, 100);
+}
+
+function isNoRequirement(val) {
+    if (val === null || val === undefined) return true;
+    return !val || val === '/' || val === '-' || val === '' || val === '无';
+}
+
+function updateEquipSelect(pos) {
+    const selectEl = document.getElementById('select-' + pos.id);
+    if (!selectEl) return;
+    
+    let equips;
+    if (pos.attr) {
+        equips = equipmentData.filter(e => e.传承部位 === pos.partType && e.英雄属性要求 === pos.attr);
+    } else {
+        equips = equipmentData.filter(e => e.传承部位 === pos.partType && isNoRequirement(e.英雄属性要求));
+    }
+    
+    let html = '<option value="">-- 选择 --</option>';
+    if (equips.length > 0) {
+        equips.forEach(e => {
+            const cleanName = e.传承名称 ? e.传承名称.toString().trim() : '';
+            const tier = equipTierMap[cleanName];
+            const colorClass = getTierColorClass(tier);
+            html += '<option value="' + cleanName + '" class="' + colorClass + '">' + cleanName + '</option>';
+        });
+        
+        if (!isLoadingFromStorage && !selectedEquipment[pos.id] && equips.length > 0) {
+            selectEl.selectedIndex = 1;
+            selectedEquipment[pos.id] = equips[0].传承名称 ? equips[0].传承名称.toString().trim() : '';
+            const firstTier = equipTierMap[equips[0].传承名称.toString().trim()];
+            const firstColorClass = getTierColorClass(firstTier);
+            selectEl.className = firstColorClass || '';
+        }
+    } else {
+        html += '<option value="">无匹配数据</option>';
+    }
+    
+    selectEl.innerHTML = html;
+}
+
+function onEquipChange(posId, value) {
+    const selectEl = document.getElementById('select-' + posId);
+    if (selectEl && value) {
+        const tier = equipTierMap[value.trim()];
+        const colorClass = getTierColorClass(tier);
+        selectEl.className = colorClass || '';
+    }
+    selectedEquipment[posId] = value ? value.trim() : '';
+    saveEquipmentToStorage();
+    if (currentFilter) calculatePromote(currentFilter);
+}
+
+function parseRequirementList(val) {
+    if (isNoRequirement(val)) return null;
+    return val.toString().split('/').map(v => v.trim()).filter(v => v);
+}
+
+function checkModeMatch(selectedMode, equipModeReq) {
+    if (!selectedMode) {
+        if (isNoRequirement(equipModeReq)) {
+            return { pass: true, reason: '' };
+        } else {
+            return { pass: false, reason: '模式(' + equipModeReq + ')' };
+        }
+    }
+    if (isNoRequirement(equipModeReq)) {
+        return { pass: true, reason: '' };
+    }
+    const reqModes = parseRequirementList(equipModeReq);
+    if (reqModes && reqModes.includes(selectedMode)) {
+        return { pass: true, reason: '' };
+    }
+    return { pass: false, reason: '模式(' + equipModeReq + ')' };
+}
+
+function checkDifficultyMatch(selectedDiff, equipDiffReq) {
+    if (!selectedDiff) return { pass: true, reason: '' };
+    if (isNoRequirement(equipDiffReq)) return { pass: true, reason: '' };
+    const reqDiffs = parseRequirementList(equipDiffReq);
+    if (reqDiffs && reqDiffs.includes(selectedDiff)) {
+        return { pass: true, reason: '' };
+    }
+    return { pass: false, reason: '难度(' + equipDiffReq + ')' };
+}
+
+function normalizeValue(val) {
+    if (!val) return '';
+    const v = val.toString().trim().toLowerCase();
+    return v;
+}
+
+function normalizeGender(val) {
+    if (!val) return '';
+    const v = val.toString().trim().toLowerCase();
+    if (v === '女' || v === '女性' || v === 'female' || v === 'f') return '女';
+    if (v === '男' || v === '男性' || v === 'male' || v === 'm') return '男';
+    return v;
+}
+
+function checkMatch(reqValue, heroValue) {
+    if (!reqValue || isNoRequirement(reqValue)) return true;
+    const reqStr = reqValue.toString().trim();
+    if (!heroValue) return false;
+    
+    if (reqStr.includes('/')) {
+        const options = reqStr.split('/').map(v => v.trim());
+        const heroValStr = heroValue.toString().trim();
+        if (reqStr.includes('女') || reqStr.includes('男') || reqStr.toLowerCase().includes('female') || reqStr.toLowerCase().includes('male')) {
+            const heroNormalized = normalizeGender(heroValStr);
+            return options.some(opt => normalizeGender(opt) === heroNormalized);
+        }
+        return options.some(opt => normalizeValue(opt) === normalizeValue(heroValStr));
+    }
+    
+    const heroValStr = heroValue.toString().trim();
+    if (reqStr.includes('女') || reqStr.includes('男') || reqStr.toLowerCase().includes('female') || reqStr.toLowerCase().includes('male')) {
+        return normalizeGender(reqStr) === normalizeGender(heroValStr);
+    }
+    return normalizeValue(reqStr) === normalizeValue(heroValStr);
+}
+
+function buildPromoteChain(equipName, hero, gameMode, gameDiff, visited = new Set()) {
+    const chain = [];
+    let curr = equipName;
+    let step = 0;
+    let totalPromote = 0;
+    let difficultyOptions = new Set();
+    
+    while (curr && step < 100) {
+        if (visited.has(curr)) {
+            chain.push({ name: curr, pass: false, reason: '循环引用', isLast: false, status: 'stop', isFinal: isFinalEquipment(curr), tier: equipTierMap[curr], bossName: '' });
+            break;
+        }
+        visited.add(curr);
+        
+        const data = equipInfoMap[curr];
+        const next = equipTree[curr] ? equipTree[curr][0] : null;
+        
+        if (!data) {
+            chain.push({ name: curr, pass: false, reason: '装备不存在', isLast: false, status: 'stop', isFinal: isFinalEquipment(curr), tier: equipTierMap[curr], bossName: '' });
+            break;
+        }
+        
+        let pass = true;
+        let failReasons = [];
+        
+        const modeResult = checkModeMatch(gameMode, data.游戏模式要求);
+        if (!modeResult.pass) {
+            pass = false;
+            failReasons.push(modeResult.reason);
+        }
+        
+        let equipDiffOptions = [];
+        if (!isNoRequirement(data.游戏难度要求)) {
+            equipDiffOptions = parseRequirementList(data.游戏难度要求);
+        } else {
+            equipDiffOptions = Array.from({length: maxDifficulty}, (_, i) => (i + 1).toString());
+        }
+        equipDiffOptions.forEach(d => {
+            if (!isNaN(d)) {
+                difficultyOptions.add(d);
+            }
+        });
+        
+        const diffResult = checkDifficultyMatch(gameDiff, data.游戏难度要求);
+        if (!diffResult.pass) {
+            pass = false;
+            failReasons.push(diffResult.reason);
+        }
+        
+        if (pass && !checkMatch(data.英雄属性要求, hero.属性)) {
+            pass = false;
+            failReasons.push('属性' + data.英雄属性要求);
+        }
+        if (pass && !checkMatch(data.英雄种族要求, hero.种族)) {
+            pass = false;
+            failReasons.push('种族' + data.英雄种族要求);
+        }
+        if (pass && !checkMatch(data.英雄阵营要求, hero.阵营)) {
+            pass = false;
+            failReasons.push('阵营' + data.英雄阵营要求);
+        }
+        if (pass && !checkMatch(data.英雄善恶要求, hero.善恶)) {
+            pass = false;
+            failReasons.push('善恶' + data.英雄善恶要求);
+        }
+        if (pass && !checkMatch(data.英雄性别要求, hero.性别)) {
+            pass = false;
+            failReasons.push('性别' + data.英雄性别要求);
+        }
+        
+        const isLast = pass && !next;
+        const isFinal = isFinalEquipment(curr);
+        let bossName = '';
+        if (data['BOSS名称'] && !isNoRequirement(data['BOSS名称'])) {
+            bossName = data['BOSS名称'].toString().trim();
+        } else if (data['要求击杀Boss'] && !isNoRequirement(data['要求击杀Boss'])) {
+            bossName = data['要求击杀Boss'].toString().trim();
+        }
+        
+        let status = 'pass';
+        if (!pass) {
+            status = 'fail';
+        } else if (isLast) {
+            status = 'full';
+        } else if (next) {
+            const currParsed = parseEquipName(curr);
+            const nextParsed = parseEquipName(next);
+            if (currParsed.baseName !== nextParsed.baseName && nextParsed.isLv1) status = 'jump';
+        }
+        
+        chain.push({ name: curr, pass: pass, reason: failReasons.join(' '), isLast: isLast, status: status, isFinal: isFinal, tier: equipTierMap[curr], bossName: bossName });
+        
+        if (!pass) {
+            break;
+        }
+        if (next) {
+            totalPromote++;
+        }
+        curr = next;
+        step++;
+    }
+    
+    return { chain, totalPromote, difficultyOptions };
+}
+
+function renderChain(chainData, isCommon = false, onlyShowPromote = false) {
+    const { chain, totalPromote } = chainData;
+    if (!chain || chain.length === 0) return { html: '', slotTotal: 0 };
+    
+    if (chain.length === 1 && chain[0].isFinal) {
+        return { html: '', slotTotal: 0 };
+    }
+    
+    let html = '<div class="promote-chain">';
+    for (let idx = 0; idx < chain.length; idx++) {
+        const item = chain[idx];
+        let statusLabel = '';
+        let statusClass = '';
+        
+        if (item.status === 'jump') {
+            statusLabel = '跳阶';
+            statusClass = 'jump';
+        } else if (item.isFinal) {
+            statusLabel = '满级';
+            statusClass = 'full';
+        } else if (idx === 0) {
+            statusLabel = '起始';
+            statusClass = 'start';
+        } else if (item.pass) {
+            statusLabel = '继续';
+            statusClass = 'continue';
+        } else {
+            statusLabel = '中断';
+            statusClass = 'terminate';
+        }
+        
+        const tierColorClass = item.tier !== undefined ? 'tier-' + item.tier : '';
+        const showBoss = item.bossName && statusClass !== 'terminate' && statusClass !== 'fail';
+        
+        html += '<div class="chain-row"> <span class="chain-status ' + statusClass + '">' + statusLabel + '</span> <span class="chain-name ' + tierColorClass + '">' + item.name + '</span>';
+        if (showBoss) {
+            html += '<span class="chain-boss">' + item.bossName + '</span>';
+        }
+        if (idx < chain.length - 1) {
+            html += '<span class="chain-total ' + tierColorClass + '">+1</span>';
+        }
+        html += '</div>';
+        
+        if (idx < chain.length - 1) {
+            html += '<div class="chain-arrow">晋升↓</div>';
+        }
+    }
+    html += '</div>';
+    
+    let actualPromote = 0;
+    for (let i = 0; i < chain.length - 1; i++) {
+        if (chain[i].pass && chain[i + 1].pass) {
+            actualPromote++;
+        }
+    }
+    
+    return { html, slotTotal: actualPromote };
+}
+
+function calculatePromote(filterAttr) {
+    if (!isDataLoaded) {
+        alert('请先导入传承装备数据！');
+        return;
+    }
+    
+    if (currentFilter === filterAttr) {
+        currentFilter = null;
+    } else {
+        currentFilter = filterAttr;
+    }
+    
+    document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+    
+    if (currentFilter) {
+        const cls = filterAttr === '力量' ? 'str' : filterAttr === '敏捷' ? 'agi' : 'int';
+        const btn = document.querySelector('.filter-btn.' + cls);
+        if (btn) btn.classList.add('active');
+    }
+    
+    if (!currentFilter) {
+        document.getElementById('resultBody').innerHTML = '<div class="empty-state"><div class="icon">📊</div><p>点击上方按钮查看</p></div>';
+        ['str', 'agi', 'int'].forEach(t => {
+            const el = document.getElementById('count-' + t);
+            if (el) el.textContent = '0';
+        });
+        return;
+    }
+    
+    const hasAnySelected = Object.keys(selectedEquipment || {}).some(k => selectedEquipment[k]);
+    if (!hasAnySelected) {
+        alert('请先在左侧选择或导入当前拥有的传承装备，然后再统计。');
+        return;
+    }
+    
+    const heroModeRows = calculateAllModeStats(filterAttr);
+    renderAllModeStats(heroModeRows, filterAttr);
+}
+
+function toggleComboDetails(headerElement, comboId) {
+    const detailsDiv = document.getElementById('combo-details-' + comboId);
+    if (detailsDiv) {
+        if (detailsDiv.classList.contains('show')) {
+            detailsDiv.classList.remove('show');
+            headerElement.classList.remove('expanded');
+        } else {
+            detailsDiv.classList.add('show');
+            headerElement.classList.add('expanded');
+        }
+    }
+}
+
+function toggleTopPanel(type) {
+    const panel = document.getElementById('corner-panel-' + type);
+    if (!panel) return;
+    panel.classList.toggle('show');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    setWaitingState();
+    loadPreferHeroFromStorage();
+    autoLoadRemoteXlsxIfPossible();
+});
+
+document.getElementById('preferHeroModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closePreferHeroModal();
+    }
+});
+</script>
+</body>
+</html>
